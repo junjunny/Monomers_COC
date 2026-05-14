@@ -287,8 +287,8 @@ canvas{
       <option value="LUNAR">달 궤도</option>
     </select>
 
-    <label>노보넨 함량: <span id="nbv">35</span> mol% <span class="hint" id="nbTgHint">(Tg ≈ 143℃)</span></label>
-    <input id="nb" type="range" min="20" max="55" value="35">
+    <label>노보넨 함량: <span id="nbv">40</span> mol% <span class="hint" id="nbTgHint">(Tg ≈ 165℃)</span></label>
+    <input id="nb" type="range" min="20" max="55" value="40">
     <div class="nb-viz">
       <div class="nb-bar"></div>
       <div class="nb-marker" id="nbMarker"></div>
@@ -435,97 +435,71 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 /* =========================================================
-   CONSTANTS  (값은 모두 placeholder — 사용자가 출처 기반으로 교체 예정)
+   CONSTANTS — Team Monomers 최종 식 (LEO 고정)
+   ※ NB(mol%), TH(μm), rPOE(%) 3개 슬라이더, Tsim = 15년 고정
 ========================================================= */
 
-// 시뮬레이션 내부 탐색 범위 (수명 탐지 max horizon)
 const SIM_HORIZON = 15; // years
 
-// 미션별 환경
+// 환경 상수 (LEO: ISS 400km, 경사각 51.6°)
 const ENV = {
-  // LEO (ISS 400km, 경사각 51.6° 기준)
   LEO: {
-    radPerYear: 50,        // krad/year (0.5 kGy/year, ISS급 차폐 LEO 운용 대표값)
-                           //   range 10~300 (0.1~3 kGy/year, 차폐 두께 의존)
-    uvPerYear: 5256,       // ESH/year  (일조비 ~60% × 8760h)
-    aoPerYear: 3.28e21,    // atoms/cm²/year (NASA MISSE 1&2)
-    tMin: -150, tMax: 150, // °C  (태양 직사 ↔ 지구 그늘)
-    cyclesPerYear: 5840    // 열사이클 횟수/year (90분/cycle)
-  },
-  SSO: {
-    radPerYear: 12, uvPerYear: 1.3, aoPerYear: 2e21,
-    tMin: -130, tMax: 130, cyclesPerYear: 5500
-  },
-  GEO: {
-    radPerYear: 60, uvPerYear: 1.5, aoPerYear: 0,
-    tMin: -180, tMax: 150, cyclesPerYear: 90
-  },
-  LUNAR: {
-    radPerYear: 30, uvPerYear: 1.4, aoPerYear: 0,
-    tMin: -170, tMax: 130, cyclesPerYear: 12
+    RAD_RATE: 0.5,       // kGy/year — 방사선 dose rate (MDPI Electronics 12(19) 4058)
+    UV_RATE:  5256,      // ESH/year — 일조비 60% × 8760h (NREL Solar Spectra)
+    AO_RATE:  3.28e21,   // atoms/cm²/year (NASA NTRS 20070002707)
+    T_MAX:    150,       // ℃ 태양 직사 최고온
+    T_MIN:    -150,      // ℃ 지구 그늘 최저온
+    DELTA_T:  300,       // ℃ 온도 변화폭 (PCBSync Satellite PCB)
+    N_CYC:    5840       // cycles/year — 525,600분 ÷ 90분
   }
 };
 
-// 재료 / 모델 파라미터  (각 값의 근거는 formulas.html / formulas.pdf 참조)
+// 재료 / 모델 파라미터
 const MAT = {
-  // ── 광학 ──
-  transparency0: 95,              // %  (UV-Vis 측정 초기 투과율)
-  thicknessAttenuation: 0.0001,   // 1/μm  (Beer-Lambert 류 — 투명 COC 매우 작음)
-  kRad: 0.0001,                   // 1/krad (LEO 50 krad/y → 단독 ~25년에 80% 도달)
-  kUV:  0.000001,                 // 1/ESH  (LEO 5256 ESH/y → 단독 ~42년에 80% 도달)
-                                  //   ※ 두 채널 결합 시 ~12.8년에 임계, 다른 메커니즘과 경합
-  kSynergy: 0,                    // 검증 데이터 없으면 0 (보수적)
-  kRoughness: 0.001,              // 1/μm   (AO 침식 → 거칠기 → 산란)
+  // 광학
+  T0:       95,          // %       초기 광투과율
+  ALPHA:    1e-4,        // /μm     Beer-Lambert 두께 감쇠
+  K_RAD:    1e-4,        // /krad   방사선 황변 상수
+  K_UV:     1e-6,        // /ESH    UV 황변 상수
+  K_ROUGH:  1e-3,        // /μm     AO 거칠기 → 광산란
+  K_CONT:   1.0,         // 무차원  CVCM 오염물 광손실
+  // ksyn 제거 (검증 데이터 없음)
 
-  // ── Tg 회귀식 (NB mol% → Tg °C) ──
-  //   TOPAS COC 실측: NB 37mol%→130℃, 54mol%→158℃ → 기울기 4.5℃/mol%
-  tgIntercept: -15,
-  tgSlope: 4.5,
-  tgBrittleMargin: 200,           // (Tg − tMin) > 이 값이면 저온 취성 위험
-  tgSoftenMargin: 20,             // (tMax − Tg) < 이 값이면 고온 연화 위험
+  // Tg 회귀 (NB → Tg)
+  TG0:      -15,         // ℃       NB=0 절편 (ScienceDirect S0376738805006071)
+  MG:       4.5,         // ℃/mol%  기울기 (TOPAS datasheet)
 
-  // ── 기계 (조성 의존 영률, 혼합 법칙) ──
-  E_COC: 3000,                    // MPa  (COC 단독 영률)
-  E_POE: 10,                      // MPa  (POE 단독 영률 — 매우 유연)
-  kCrosslink: 0.0001,             // 1/krad  (방사선 가교에 의한 모듈러스 증가)
-  cteCOC: 60e-6,                  // 1/K  (COC CTE, 40~60 ppm/℃)
-  ctePOE: 180e-6,                 // 1/K  (POE CTE, 150~200 ppm/℃)
-  thermalStressScale: 0.05,       // 구속 완화 인자 — 다층 구속·응력 완화·표면 응력 농도
-                                  //   를 묶은 경험 인자. full-constraint 응력 × 0.05
+  // 기계 (혼합 법칙)
+  E_COC:    3000,        // MPa     COC 단독 영률
+  E_POE:    10,          // MPa     POE 단독 영률
+  K_XL:     1e-4,        // /krad   방사선 가교 상수
+  CTE_COC:  60,          // ppm/℃  (TOPAS)
+  CTE_POE:  180,         // ppm/℃  (Wiley pip.3323)
+  SIGMA_ADH:100,         // MPa     박리 임계 전단응력 (표면처리 폴리올레핀 계면 전단강도 50~100 MPa 상한)
+  // η(구속 완화 인자) 제거 — σfull 직접 사용. σ_full ≈ 54 MPa (50/50)을 안전마진과 함께 수용.
 
-  // ── 접착 / 박리 ──
-  adhesion: 5,                    // MPa  (peel 30 N/cm ÷ 봉지층 0.6mm ≈ 5 MPa 환산)
+  // AO / 피로
+  EY:       3.5e-24,     // cm³/atom AO 침식 수율 (NASA NTRS 20090034484)
+  CHI:      0.2,         // 무차원   차폐 인자
+  MU_CORE:  1.8,         // 무차원   POE 소진 후 COC 침식 가속
+  N_REF:    2e4,         // cycles   Coffin-Manson 기준
+  N_EXP:    2,           // 무차원   응력비 지수 (Wiley Polym. Eng. Sci. 1969)
 
-  // ── AO 침식 ──
-  erosionYield: 3.5e-24,          // cm³/atom (폴리올레핀, NASA MISSE)
-  cmToUm: 1e4,                    // cm → μm 단위 환산
-  shieldingFactor: 0.2,           // 차폐/입사각 보정 (cover glass 부분 차폐)
-  coreErosionMultiplier: 1.8,     // 희생층(POE) 소진 후 코어(COC) 침식 가속
+  // Outgassing (조성 의존)
+  TML_POE:  1.5,         // %       POE 단독 포화 TML
+  TML_COC:  0.3,         // %       COC 단독 포화 TML
+  CVCM_POE: 0.12,        // %       POE 단독 포화 CVCM
+  CVCM_COC: 0.03,        // %       COC 단독 포화 CVCM
+  TAU:      0.5,         // year    1차 시정수
+  GAMMA_AO: 0.3,         // 무차원  LEO AO 응축물 제거율
+  // ASTM E595: TML<1.0%, CVCM<0.1% (NASA GSFC)
 
-  // ── Outgassing (조성 의존 saturation) ──
-  //   ASTM E595 기준 TML<1.0%, CVCM<0.1%. POE는 휘발성 높음, COC는 매우 낮음.
-  tmlPOE: 1.5,                    // %  POE 단독 saturation TML
-  tmlCOC: 0.3,                    // %  COC 단독 saturation TML
-  cvcmPOE: 0.12,                  // %  POE 단독 saturation CVCM
-  cvcmCOC: 0.03,                  // %  COC 단독 saturation CVCM
-  tauOutgas: 0.5,                 // year  1차 시정수 (대부분 첫 6개월에 방출)
-  kOutgasThickness: 1.0,          // TML 1%당 두께 손실 환산
-  kContamination: 0.05,           // CVCM → 광학 투과율 손실 (1/%)
-  aoCleansFactor: 0.3,            // LEO AO가 외부 응축물 제거 → contamination 감쇠
-
-  // ── 피로 (Coffin-Manson 형) ──
-  //   D = (N / N_ref) × (σ / σ_adh)^n,  실패 조건: D ≥ 1
-  fatigueRefCycles: 1e4,          // N_ref
-  fatigueExp: 4.0,                // n  (폴리머 계면 피로 표준 3~5)
-
-  // ── 임계값 ──
-  criticalTransparency: 80,       // %  (IEC 62788-1-7: 80% 유지 = 장기 20% 손실 한계)
-  criticalPowerRetention: 85,     // %
-  criticalCoreThickness: 40,      // μm (COC 최소 유지)
-  criticalFatigue: 1.0,           // Miner 누적
-
-  // ── 수치해석 ──
-  lifetimeStep: 0.05              // year
+  // 임계값 / 수치해석
+  CRIT_T_RATIO: 0.80,    // T_opt < T0 × 0.80 → 광학 fail
+  TML_LIMIT:    1.0,
+  CVCM_LIMIT:   0.1,
+  D_LIMIT:      1.0,
+  lifetimeStep: 0.1      // year (사용자 spec 동일)
 };
 
 /* =========================================================
@@ -554,7 +528,7 @@ function syncSliderLabels(){
   cocv.textContent = 100 - poeVal;
 
   // Tg 추정 (NB 회귀식)
-  const tgEst = MAT.tgIntercept + nbVal * MAT.tgSlope;
+  const tgEst = MAT.TG0 + nbVal * MAT.MG;
   nbTgHint.textContent = `(Tg ≈ ${tgEst.toFixed(0)}℃)`;
 
   // NB 마커 위치 (슬라이더 범위에 맞춤)
@@ -579,134 +553,129 @@ function syncSliderLabels(){
 syncSliderLabels();
 
 /* =========================================================
-   SIMULATION CORE
-   ─ simulateAt(S, t): 임의 시각 t년의 봉지재 상태를 반환
-   ─ 모든 열화 채널이 결합되어 t의 함수로 계산됨
+   SIMULATION CORE — Team Monomers 최종 식 (8 채널)
+   simulateAt(S, t): 임의 시각 t년의 봉지재 상태 반환
 ========================================================= */
 function simulateAt(S, t){
-  const env = ENV[S.mission];
+  const env = ENV.LEO;
 
-  // 누적 노출량
-  const radDose   = env.radPerYear * t;          // krad
-  const uvDose    = env.uvPerYear  * t;          // ESH
-  const aoFluence = env.aoPerYear  * t;          // atoms/cm²
-  const cycles    = env.cyclesPerYear * t;       // count
+  const NB    = S.nb;
+  const TH    = S.th;
+  const rPOE  = S.sacrificialRatio;
+  const rCOC  = 100 - rPOE;
+  const fPOE  = rPOE / 100;
+  const fCOC  = rCOC / 100;
+  const hPOE0 = TH * fPOE;     // μm 초기 POE 두께
+  const hCOC0 = TH * fCOC;     // μm 초기 COC 두께
 
-  // 초기 층 두께
-  const sacrificial0 = S.th * (S.sacrificialRatio / 100);
-  const core0        = S.th * (S.coreRatio        / 100);
+  // ── 채널 7: Tg 판정 (시간 무관, 즉시) ───────────────────
+  // Tg = Tg0 + mg × NB
+  const Tg = MAT.TG0 + MAT.MG * NB;
+  const tgFail = Tg < env.T_MAX;   // 고온 연화
 
-  // ── (1) AO 침식: 희생층 → 코어층 (가속 침식) ──
-  const grossErosion =
-    MAT.erosionYield * aoFluence * MAT.cmToUm * MAT.shieldingFactor;
+  // ── 채널 1: AO 침식 (POE 희생 → COC 가속 침식) ──────────
+  // FAO(t)     = Φ̇AO × t
+  // Δhgross(t) = Ey × FAO × 10⁴ × χ
+  const FAO      = env.AO_RATE * t;
+  const dh_gross = MAT.EY * FAO * 1e4 * MAT.CHI;   // μm
 
-  let sacrificialLayer = sacrificial0 - grossErosion;
-  let coreLayer = core0;
-  if (sacrificialLayer < 0){
-    const overshoot = -sacrificialLayer;
-    sacrificialLayer = 0;
-    coreLayer = Math.max(0, core0 - overshoot * MAT.coreErosionMultiplier);
+  let tPOE, tCOC;
+  if (dh_gross <= hPOE0){
+    tPOE = hPOE0 - dh_gross;
+    tCOC = hCOC0;
+  } else {
+    tPOE = 0;
+    tCOC = Math.max(0, hCOC0 - (dh_gross - hPOE0) * MAT.MU_CORE);
   }
+  const aoFail = tCOC <= 0;
 
-  // ── (2) AO → 표면 거칠기 → 광산란 (광학 결합) ──
-  const erodedTotal =
-    (sacrificial0 - sacrificialLayer) + (core0 - coreLayer);
-  const roughnessLoss = MAT.kRoughness * erodedTotal;
+  // ── 채널 2: AO → 표면 거칠기 → 광산란 ───────────────────
+  const dh_tot = (hPOE0 - tPOE) + (hCOC0 - tCOC);
+  const Lrough = MAT.K_ROUGH * dh_tot;
 
-  // ── (8) Outgassing: 조성 의존 saturation × 1차 시정수 transient ──
-  //   TML_sat(POE,COC) = TML_POE · f_POE + TML_COC · f_COC
-  //   TML(t) = TML_sat · (1 − exp(−t/τ))
-  const poeFrac = S.sacrificialRatio / 100;       // POE = 외층/희생
-  const cocFrac = S.coreRatio / 100;              // COC = 내층/기능
-  const tmlSat  = MAT.tmlPOE  * poeFrac + MAT.tmlCOC  * cocFrac;
-  const cvcmSat = MAT.cvcmPOE * poeFrac + MAT.cvcmCOC * cocFrac;
-  const outgasFraction   = 1 - Math.exp(-t / MAT.tauOutgas);
-  const tmlNow           = tmlSat  * outgasFraction;            // % mass loss
-  const cvcmNow          = cvcmSat * outgasFraction;            // % condensable
-  const outgasThicknessLoss =
-    S.th * (tmlNow / 100) * MAT.kOutgasThickness;               // μm
-  // LEO에서는 AO가 외부 응축물을 지속 제거 → 유효 contamination 감소
-  const effectiveContamination = cvcmNow * (1 - MAT.aoCleansFactor);
+  // ── 채널 8: Outgassing (조성 의존 포화) ─────────────────
+  // TMLsat = TML_POE·fPOE + TML_COC·fCOC
+  // TML(t) = TMLsat × (1 − exp(−t/τ))
+  // CVCMeff = CVCMsat × (1 − exp(−t/τ)) × (1 − γAO)
+  const TML_sat  = MAT.TML_POE  * fPOE + MAT.TML_COC  * fCOC;
+  const CVCM_sat = MAT.CVCM_POE * fPOE + MAT.CVCM_COC * fCOC;
+  const outFrac  = 1 - Math.exp(-t / MAT.TAU);
+  const TML_t    = TML_sat  * outFrac;
+  const CVCM_eff = CVCM_sat * outFrac * (1 - MAT.GAMMA_AO);
+  const tmlFail  = TML_t   >= MAT.TML_LIMIT;
+  const cvcmFail = CVCM_eff >= MAT.CVCM_LIMIT;
 
-  // outgassing은 코어층(내부) 두께도 줄임 (아직 살아있다면 균등 분배)
-  const totalLayerNow = sacrificialLayer + coreLayer;
-  if (totalLayerNow > 0){
-    const sacShare  = sacrificialLayer / totalLayerNow;
-    const coreShare = coreLayer        / totalLayerNow;
-    sacrificialLayer = Math.max(0, sacrificialLayer - outgasThicknessLoss * sacShare);
-    coreLayer        = Math.max(0, coreLayer        - outgasThicknessLoss * coreShare);
-  }
-
-  // ── (3) 광학 열화: 두께 + 방사선 + UV + 시너지 + 거칠기 + 오염 ──
-  const baselineOptical =
-    MAT.transparency0 * Math.exp(-MAT.thicknessAttenuation * S.th);
-
-  const transparency =
-    baselineOptical *
-    Math.exp(-MAT.kRad * radDose) *
-    Math.exp(-MAT.kUV  * uvDose) *
-    Math.exp(-MAT.kSynergy * radDose * uvDose) *
-    Math.exp(-roughnessLoss) *
-    Math.exp(-MAT.kContamination * effectiveContamination);
-
+  // ── 채널 3: 광학 열화 (다중 결합) ───────────────────────
+  // T(t) = T₀ × exp(−α·TH) × exp(−kRad·Φ̇rad·t·100)  [kGy→krad]
+  //            × exp(−kUV·Φ̇UV·t) × exp(−Lrough) × exp(−kCont·CVCMeff)
+  const baselineOptical = MAT.T0 * Math.exp(-MAT.ALPHA * TH);
+  const T_opt = MAT.T0
+    * Math.exp(-MAT.ALPHA  * TH)
+    * Math.exp(-MAT.K_RAD  * env.RAD_RATE * t * 100)
+    * Math.exp(-MAT.K_UV   * env.UV_RATE  * t)
+    * Math.exp(-Lrough)
+    * Math.exp(-MAT.K_CONT * CVCM_eff);
+  const opticalFail = T_opt < MAT.T0 * MAT.CRIT_T_RATIO;
   const powerRetention = baselineOptical > 0
-    ? (transparency / baselineOptical) * 100
+    ? (T_opt / baselineOptical) * 100
     : 0;
 
-  // ── (4) 영률 (혼합 법칙) + 방사선 가교 보정 ──
-  //   E_base = E_COC · f_COC + E_POE · f_POE
-  //   E(rad) = E_base · (1 + k_xl · D_rad)
-  const E_base  = MAT.E_COC * cocFrac + MAT.E_POE * poeFrac;
-  const modulus = E_base * (1 + MAT.kCrosslink * radDose);
+  // ── 채널 4: 영률 (혼합 법칙) + 방사선 가교 ─────────────
+  // Ebase = E_COC·fCOC + E_POE·fPOE
+  // E(t)  = Ebase × (1 + kxl · Φ̇rad · t · 100)
+  const E_base = MAT.E_COC * fCOC + MAT.E_POE * fPOE;
+  const E_t    = E_base * (1 + MAT.K_XL * env.RAD_RATE * t * 100);
 
-  // ── (5) 열응력 (ΔT × |Δα| × E) ──
-  const deltaT = env.tMax - env.tMin;
-  const thermalStress =
-    modulus * Math.abs(MAT.cteCOC - MAT.ctePOE) * deltaT *
-    MAT.thermalStressScale;
+  // ── 채널 5: 열응력 (정적 박리) ─────────────────────────
+  // Δα = |αPOE − αCOC|,  σ(t) = E(t) × Δα·10⁻⁶ × ΔT
+  const dAlpha = Math.abs(MAT.CTE_POE - MAT.CTE_COC);
+  const sigma  = E_t * (dAlpha * 1e-6) * env.DELTA_T;
+  const stressFail = sigma > MAT.SIGMA_ADH;
 
-  // ── (6) 열사이클 피로 누적 (Coffin-Manson형) ──
-  const stressRatio = thermalStress / MAT.adhesion;
-  const fatigueIndex =
-    (cycles / MAT.fatigueRefCycles) *
-    Math.pow(Math.max(0, stressRatio), MAT.fatigueExp);
+  // ── 채널 6: 열사이클 피로 (Coffin-Manson + Miner) ──────
+  // N(t) = Ncyc · t,  D(t) = (N/Nref) × (σ/σadh)^n
+  const N_t = env.N_CYC * t;
+  const D_t = (N_t / MAT.N_REF) * Math.pow(sigma / MAT.SIGMA_ADH, MAT.N_EXP);
+  const fatigueFail = D_t >= MAT.D_LIMIT;
 
-  // ── (7) Tg 정렬 검사 (이중 임계: 운용 범위 통과 + 저온 취성) ──
-  const tg = MAT.tgIntercept + S.nb * MAT.tgSlope;
-  const tgPassesRange = (tg > env.tMin) && (tg < env.tMax);
-  const lowTBrittle  = (tg - env.tMin) > MAT.tgBrittleMargin;
-  const highTSoften  = (env.tMax - tg) < MAT.tgSoftenMargin;
-
-  // ── 실패 모드 판정 ──
+  // 실패 모드 (사용자 spec과 동일한 채널명)
   const failModes = [];
-  if (transparency    < MAT.criticalTransparency)    failModes.push("황변/광학 성능 저하");
-  if (powerRetention  < MAT.criticalPowerRetention)  failModes.push("태양전지 출력 감소");
-  if (sacrificialLayer <= 0)                         failModes.push("AO 희생층 소진");
-  if (coreLayer       < MAT.criticalCoreThickness)   failModes.push("핵심 기능층 손상");
-  if (thermalStress   > MAT.adhesion)                failModes.push("정적 박리 응력 초과");
-  if (fatigueIndex   >= MAT.criticalFatigue)         failModes.push("열사이클 피로 파괴");
-  if (tgPassesRange)                                 failModes.push("운용 온도 내 Tg 통과");
-  if (lowTBrittle)                                   failModes.push("저온 취성 위험");
-  if (highTSoften)                                   failModes.push("고온 연화 위험");
+  if (tgFail)       failModes.push("Tg 고온 연화");
+  if (aoFail)       failModes.push("AO 침식 (COC 소진)");
+  if (tmlFail)      failModes.push("Outgassing TML 초과");
+  if (cvcmFail)     failModes.push("Outgassing CVCM 초과");
+  if (opticalFail)  failModes.push("광학 열화 (투과율 80% 미달)");
+  if (stressFail)   failModes.push("열응력 박리 (정적)");
+  if (fatigueFail)  failModes.push("열사이클 피로 박리");
 
   return {
-    t, radDose, uvDose, aoFluence, cycles,
-    sacrificial0, core0, sacrificialLayer, coreLayer,
-    transparency, baselineOptical, powerRetention,
-    modulus, thermalStress, fatigueIndex,
-    tg, tgPassesRange, lowTBrittle, highTSoften,
-    tmlNow, cvcmNow, outgasThicknessLoss,
+    t, Tg,
+    radDose: env.RAD_RATE * t * 100,   // krad
+    uvDose:  env.UV_RATE  * t,
+    aoFluence: FAO,
+    cycles:  N_t,
+    sacrificial0: hPOE0, core0: hCOC0,
+    sacrificialLayer: tPOE, coreLayer: tCOC,
+    transparency: T_opt, baselineOptical, powerRetention,
+    modulus: E_t, thermalStress: sigma, fatigueIndex: D_t,
+    tmlNow: TML_t, cvcmNow: CVCM_eff,
+    tgPassesRange: false,
+    lowTBrittle:   false,
+    highTSoften:   tgFail,
     failModes
   };
 }
 
-// 임계값 최초 도달 시각 = 수명
+// 임계값 최초 도달 시각 = 수명 (사용자 spec: life = t − dt)
 function findLifetime(S){
   const dt = MAT.lifetimeStep;
-  if (simulateAt(S, 0).failModes.length > 0) return 0;
+  // 채널 7 (Tg) 즉시 판정
+  const Tg = MAT.TG0 + MAT.MG * S.nb;
+  if (Tg < ENV.LEO.T_MAX) return 0;
+
   for (let t = dt; t <= S.dur + dt/2; t += dt){
     if (simulateAt(S, t).failModes.length > 0){
-      return +Math.max(0.1, t).toFixed(2);
+      return +Math.max(0, t - dt).toFixed(1);
     }
   }
   return S.dur;
@@ -718,11 +687,11 @@ function findLifetime(S){
 function tone(ok){ return ok ? "good" : "bad"; }
 
 function updateHUD(state){
-  const tgOK = !state.tgPassesRange && !state.lowTBrittle && !state.highTSoften;
+  const tgOK = !state.highTSoften;
   hudTemp.className = tone(tgOK);
-  hudTemp.textContent = tgOK ? "안정" : "위험";
+  hudTemp.textContent = tgOK ? "안정" : "고온 연화";
 
-  const radOK = state.transparency >= MAT.criticalTransparency;
+  const radOK = state.transparency >= MAT.T0 * MAT.CRIT_T_RATIO;
   hudRad.className = tone(radOK);
   hudRad.textContent = radOK ? "양호" : "황변";
 
@@ -730,13 +699,13 @@ function updateHUD(state){
   hudAO.className = tone(aoOK);
   hudAO.textContent = aoOK ? "보호중" : "소진";
 
-  const coreOK = state.coreLayer > MAT.criticalCoreThickness;
+  const coreOK = state.coreLayer > 0;
   hudCore.className = tone(coreOK);
   hudCore.textContent = coreOK ? "유지" : "손상";
 
   const delamOK =
-    state.thermalStress < MAT.adhesion &&
-    state.fatigueIndex  < MAT.criticalFatigue;
+    state.thermalStress <= MAT.SIGMA_ADH &&
+    state.fatigueIndex   < MAT.D_LIMIT;
   hudDelam.className = tone(delamOK);
   hudDelam.textContent = delamOK ? "안정" : "박리 위험";
 }
