@@ -644,7 +644,7 @@ canvas{
         <tr><td>E_y</td><td>3.5 × 10⁻²⁴ cm³/atom</td><td>AO 침식 수율 · NASA NTRS 20090034484</td></tr>
         <tr><td>χ</td><td>0.2</td><td>cover-glass 차폐 인자</td></tr>
         <tr><td>μ_core</td><td>1.8</td><td>외층 COC 소진 후 POE 가속 침식 배수</td></tr>
-        <tr><td>N_ref</td><td>2 × 10⁴ cycles</td><td>Coffin-Manson 기준 사이클</td></tr>
+        <tr><td>N_ref</td><td>2 × 10⁴ cycles</td><td>Coffin-Manson 기준 (NB=30); 실제 N_ref_eff = N_ref·max(0.2, 1−(NB−30)·0.02)</td></tr>
         <tr><td>n</td><td>2</td><td>응력비 지수 (폴리머, 금속 n≈4보다 낮음) · Wiley PES 1969</td></tr>
       </table>
 
@@ -698,14 +698,17 @@ E(t)   = E_base · (1 + k_xl · Φ̇_rad · t · 100)</div>
 
       <div class="doc-ch"><b>Ch6 — 열사이클 피로 (Coffin-Manson + Miner)</b>
         <div class="eq">N(t) = N_cyc · t
-D(t) = (N/N_ref) · (σ/σ_adh)^n
+N_ref_eff = N_ref · max(0.2, 1 − (NB − 30) · 0.02)
+            ↑ NB↑ → 폴리머 취성↑ → 피로 한계 사이클 감소
+            NB=30: 기준, NB=55: N_ref × 0.5
+D(t) = (N / N_ref_eff) · (σ/σ_adh)^n
 실패: D(t) ≥ 1.0</div>
       </div>
 
       <div class="doc-ch"><b>Ch7 — Tg 판정 (시간 무관)</b>
         <div class="eq">Tg = Tg₀ + m_g · NB
-(b) 저온 취성: (Tg − T_MIN) > 350      → Tg가 운용 최저온보다 350℃ 이상 위
-(c) 고온 연화: (T_MAX − Tg) > 0        → Tg가 운용 최고온 아래 (운용 중 고무화)</div>
+고온 연화: (T_MAX − Tg) > 0    → Tg가 운용 최고온 아래 (운용 중 고무화)
+※ 저온 취성 검사 제거 — NB↑ 시 취성 효과는 채널 6의 N_ref 감소로 반영</div>
       </div>
 
       <div class="doc-ch"><b>Ch8 — Outgassing (조성 의존 포화)</b>
@@ -731,15 +734,15 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
 
       <div class="doc-preset doc-p-coc">
         <h4>⚙ COC-Heavy — NB 40 / TH 400 / rPOE 20%</h4>
-        <p><b>결과:</b> 약 4.3년 (열사이클 피로 박리)</p>
-        <p><b>원인:</b> 외층 COC를 320μm 두껍게 → AO는 잘 막음. 하지만 COC 비율 80%로 E_base ≈ 2400 MPa로 큼. σ_eff = η · E · Δα · ΔT ≈ 4.3 MPa로 σ_adh = 5 MPa에 매우 근접 → Miner 누적 손상이 4년 만에 D=1 도달.</p>
-        <p><b>설계 메시지:</b> AO 보호만 보고 COC를 늘리면 열팽창 차이 응력으로 인한 피로가 누적되어 박리.</p>
+        <p><b>결과:</b> 약 3.5년 (열사이클 피로 박리)</p>
+        <p><b>원인:</b> 외층 COC 320μm로 AO는 잘 막음. 그러나 COC 비율 80%로 E_base ≈ 2400 MPa로 큼 → σ_eff ≈ 4.3 MPa (σ_adh = 5에 근접). NB=40에서 N_ref_eff = 16000 (NB↑로 취성↑ → 피로 한계 감소) → Miner 누적이 ~3.5년 만에 D=1 도달.</p>
+        <p><b>설계 메시지:</b> AO 보호만 보고 COC를 늘리면 (1) 열팽창 응력이 커지고 (2) NB도 같이 올려 잡으려 하면 폴리머가 취성화되어 피로 한계가 빠르게 떨어짐 → 박리 가속.</p>
       </div>
 
       <div class="doc-preset doc-p-optimal">
-        <h4>★ Optimal — NB 40 / TH 600 / rPOE 54%</h4>
-        <p><b>결과:</b> 약 11.9년 (광학 열화)</p>
-        <p><b>원인:</b> 총 두께 600μm로 AO 방어 (h_COC₀ ≈ 276μm), POE 비율 54%로 E_base ≈ 1390 MPa 낮춰 σ_eff = 2.5 MPa &lt; σ_adh = 5 → 정적·피로 박리 모두 통과. AO 침식 ~12년, 광학이 비슷한 시기 한계 도달.</p>
+        <h4>★ Optimal — NB 40 / TH 650 / rPOE 58%</h4>
+        <p><b>결과:</b> 약 11.6년 (광학 열화)</p>
+        <p><b>원인:</b> 총 두께 650μm로 AO 방어 (h_COC₀ ≈ 273μm), POE 비율 58%로 E_base ≈ 1264 MPa 낮춰 σ_eff ≈ 2.3 MPa &lt; σ_adh = 5 → 정적·피로 모두 통과. AO 침식 ~12년, 광학이 비슷한 시기 한계 도달.</p>
         <p><b>설계 메시지:</b> 두께와 POE/COC 비율을 균형 조정해 7개 채널이 모두 안전 영역에서 동시에 한계에 가까워지는 점이 최적. LEO 실용성 기준 (10년+) 충족.</p>
       </div>
     </section>
@@ -785,7 +788,7 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
     <div class="preset-row">
       <button class="preset-btn preset-danger"  data-nb="20" data-th="400" data-poe="50">⚠ Danger<span>0년 Tg</span></button>
       <button class="preset-btn preset-coc"     data-nb="40" data-th="400" data-poe="20">⚙ COC-Heavy<span>~4년 피로</span></button>
-      <button class="preset-btn preset-optimal" data-nb="40" data-th="600" data-poe="54">★ Optimal<span>~12년 광학</span></button>
+      <button class="preset-btn preset-optimal" data-nb="40" data-th="650" data-poe="58">★ Optimal<span>~12년 광학</span></button>
     </div>
 
     <button id="runBtn">🚀 시뮬레이션 시작</button>
@@ -1065,9 +1068,11 @@ function simulateAt(S, t){
   const hCOC0 = TH * fCOC;     // μm 초기 COC 두께
 
   // ── 채널 7: Tg 판정 (시간 무관, 즉시) ───────────────────
-  // (a) 운용 범위 통과 조건 제거, (b)(c)만 유지
+  // (a) 운용 범위 통과 조건 제거.
+  // (b) 저온 취성 제거 — Tg 상승으로 인한 취성은 채널 6(피로)의
+  //     N_REF 감소로 반영해 물리적으로 일관되게 표현.
+  // (c) 고온 연화만 유지.
   const Tg = MAT.TG0 + MAT.MG * NB;
-  const tgBrittle = (Tg - env.T_MIN) > 350;     // 저온 취성 (Tg > 200℃에서만)
   const tgSoften  = (env.T_MAX - Tg) > 0;       // 고온 연화 (Tg < T_MAX → 운용 중 고무화)
 
   // ── 채널 1: AO 침식 (COC 희생/외층 → POE 코어 가속 침식) ──
@@ -1132,14 +1137,17 @@ function simulateAt(S, t){
   const stressFail = sigma > MAT.SIGMA_ADH;
 
   // ── 채널 6: 열사이클 피로 (Coffin-Manson + Miner) ──────
-  // N(t) = Ncyc · t,  D(t) = (N/Nref) × (σ/σadh)^n
+  // NB 함량↑ → 폴리머 취성↑ → 피로 한계 사이클 N_ref 감소로 반영
+  // N_ref_eff = N_ref · max(0.2, 1 − (NB − 30) · 0.02)
+  //   NB=30 기준치, NB=55 → N_ref × 0.5
+  // N(t) = Ncyc · t,  D(t) = (N/N_ref_eff) × (σ/σadh)^n
+  const N_REF_eff = MAT.N_REF * Math.max(0.2, 1 - (NB - 30) * 0.02);
   const N_t = env.N_CYC * t;
-  const D_t = (N_t / MAT.N_REF) * Math.pow(sigma / MAT.SIGMA_ADH, MAT.N_EXP);
+  const D_t = (N_t / N_REF_eff) * Math.pow(sigma / MAT.SIGMA_ADH, MAT.N_EXP);
   const fatigueFail = D_t >= MAT.D_LIMIT;
 
   // 실패 모드
   const failModes = [];
-  if (tgBrittle)    failModes.push("Tg 저온 취성");
   if (tgSoften)     failModes.push("Tg 고온 연화");
   if (aoFail)       failModes.push("AO 침식 (COC 소진)");
   if (tmlFail)      failModes.push("Outgassing TML 초과");
@@ -1161,7 +1169,6 @@ function simulateAt(S, t){
     modulus: E_t, thermalStress: sigma, fatigueIndex: D_t,
     tmlNow: TML_t, cvcmNow: CVCM_eff,
     tgPassesRange: false,
-    lowTBrittle:   tgBrittle,
     highTSoften:   tgSoften,
     failModes
   };
@@ -1172,8 +1179,7 @@ function findLifetime(S){
   const dt = MAT.lifetimeStep;
   // 채널 7 (Tg) 즉시 판정 — (b) 저온 취성, (c) 고온 연화
   const Tg = MAT.TG0 + MAT.MG * S.nb;
-  if ((Tg - ENV.LEO.T_MIN) > 350) return 0;
-  if ((ENV.LEO.T_MAX - Tg) > 0)   return 0;
+  if ((ENV.LEO.T_MAX - Tg) > 0)   return 0;   // 고온 연화만 유지
 
   for (let t = dt; t <= S.dur + dt/2; t += dt){
     if (simulateAt(S, t).failModes.length > 0){
@@ -1278,10 +1284,9 @@ function updateBreakdowns(s, lifetime){
 
   // ── 예상 수명 ───────────────────────────────────────────
   if (lifetime === 0) {
-    let why = '';
-    if (s.lowTBrittle) why = `Tg ${s.Tg.toFixed(0)}℃ − T_MIN(−150) = ${(s.Tg+150).toFixed(0)} > 350 → 저온 취성`;
-    else if (s.highTSoften) why = `T_MAX(150) − Tg ${s.Tg.toFixed(0)}℃ = ${(150-s.Tg).toFixed(0)} > 0 → 고온 연화 (Tg가 운용 최고온 아래)`;
-    else why = `즉시 임계 도달`;
+    let why = s.highTSoften
+      ? `T_MAX(150) − Tg ${s.Tg.toFixed(0)}℃ = ${(150-s.Tg).toFixed(0)} > 0 → 고온 연화 (Tg가 운용 최고온 아래)`
+      : `즉시 임계 도달`;
     F.life.textContent = `0년 — ${why}`;
   } else if (lifetime >= SIM_HORIZON) {
     F.life.textContent = `${SIM_HORIZON}년 — 미션 horizon(${SIM_HORIZON}년) 내 모든 채널 안전 영역`;
@@ -1313,7 +1318,8 @@ function updateBreakdowns(s, lifetime){
     } else if (ch.startsWith('열응력')) {
       detail = `σ_eff = ${probeState.thermalStress.toFixed(2)} MPa > σ_adh ${MAT.SIGMA_ADH}`;
     } else if (ch.startsWith('열사이클')) {
-      detail = `D = (N/N_ref)·(σ/σ_adh)² = ${probeState.fatigueIndex.toFixed(3)} ≥ 1.0`;
+      const NREF_eff = MAT.N_REF * Math.max(0.2, 1 - (S.nb - 30) * 0.02);
+      detail = `D = (N/N_ref_eff)·(σ/σ_adh)² = ${probeState.fatigueIndex.toFixed(3)} ≥ 1.0,  N_ref_eff = ${NREF_eff.toFixed(0)}(NB=${S.nb})`;
     }
     F.fail.textContent = ch ? `[${ch}] ${detail}` : '통과 — 모든 채널 안전 영역';
   } else {
