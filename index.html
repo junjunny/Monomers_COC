@@ -793,37 +793,37 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
     <div class="card">
       <b>광투과율 <span class="card-tag">Ch3</span></b>
       <div id="transparencyResult" class="value">-</div>
-      <div class="card-formula">T = T₀·exp(−α·TH)·exp(−k_rad·rad·t·100)·exp(−k_UV·UV·t)·exp(−L_rough)·exp(−k_cont·CVCM_eff)</div>
+      <div class="card-formula" id="fTransparency">시뮬 실행 시 대입값 표시</div>
     </div>
 
     <div class="card">
       <b>출력 유지율</b>
       <div id="powerResult" class="value">-</div>
-      <div class="card-formula">T(t) ÷ baseline · 100% &nbsp;(baseline = T₀·exp(−α·TH), 두께 손실 제외 시간 의존만)</div>
+      <div class="card-formula" id="fPower">시뮬 실행 시 대입값 표시</div>
     </div>
 
     <div class="card">
       <b>외층 COC 잔여 <span class="card-tag">Ch1</span></b>
       <div id="sacrificialResult" class="value">-</div>
-      <div class="card-formula">t_COC = max(0, h_COC₀ − E_y·F_AO·10⁴·χ),&nbsp; h_COC₀ = TH·(1−rPOE/100)</div>
+      <div class="card-formula" id="fSacrificial">시뮬 실행 시 대입값 표시</div>
     </div>
 
     <div class="card">
       <b>POE 코어 상태 <span class="card-tag">Ch1</span></b>
       <div id="coreResult" class="value">-</div>
-      <div class="card-formula">COC 소진 후: t_POE = max(0, h_POE₀ − (Δh_gross − h_COC₀)·μ_core)&nbsp; (μ_core = 1.8)</div>
+      <div class="card-formula" id="fCore">시뮬 실행 시 대입값 표시</div>
     </div>
 
     <div class="card">
       <b>예상 수명</b>
       <div id="lifeResult" class="value">-</div>
-      <div class="card-formula">7채널 중 어느 하나라도 임계 도달한 최초 시각의 직전 step (t − dt)</div>
+      <div class="card-formula" id="fLife">시뮬 실행 시 대입값 표시</div>
     </div>
 
     <div class="card">
       <b>고장 원인</b>
       <div id="failResult" style="font-size:13px;line-height:1.7">-</div>
-      <div class="card-formula">Tg(즉시) · AO 침식 · Outgassing · 광학 · 정적박리 · 피로 · TML/CVCM 중 발화 채널</div>
+      <div class="card-formula" id="fFail">시뮬 실행 시 발화 채널 표시</div>
     </div>
 
   </div>
@@ -906,6 +906,16 @@ const sacrificialResult = document.getElementById("sacrificialResult");
 const coreResult = document.getElementById("coreResult");
 const lifeResult = document.getElementById("lifeResult");
 const failResult = document.getElementById("failResult");
+
+// 카드별 동적 도출식 표시 div
+const F = {
+  transparency: document.getElementById("fTransparency"),
+  power:        document.getElementById("fPower"),
+  sacrificial:  document.getElementById("fSacrificial"),
+  core:         document.getElementById("fCore"),
+  life:         document.getElementById("fLife"),
+  fail:         document.getElementById("fFail")
+};
 
 const phaseText = document.getElementById("phaseText");
 
@@ -1211,6 +1221,104 @@ function updateSidebar(finalState, lifetime){
   failResult.innerHTML = finalState.failModes.length
     ? finalState.failModes.map(x => "• " + x).join("<br>")
     : "통과";
+
+  // 카드별 실제 대입값 도출
+  updateBreakdowns(finalState, lifetime);
+}
+
+/* =========================================================
+   카드별 도출 과정 (사용자 슬라이더 값 + 시뮬 t 대입)
+========================================================= */
+function updateBreakdowns(s, lifetime){
+  const S = currentSession ? currentSession.S : getInput();
+  const env = ENV.LEO;
+  const TH = S.th;
+  const rPOE = S.sacrificialRatio;
+  const NB = S.nb;
+  const fPOE = rPOE / 100;
+  const fCOC = (100 - rPOE) / 100;
+  const hPOE0 = TH * fPOE;
+  const hCOC0 = TH * fCOC;
+  const t = s.t;
+
+  // ── 광투과율 분해 ───────────────────────────────────────
+  const fThk  = Math.exp(-MAT.ALPHA * TH);
+  const fRad  = Math.exp(-MAT.K_RAD * env.RAD_RATE * t * 100);
+  const fUV   = Math.exp(-MAT.K_UV  * env.UV_RATE  * t);
+  const dh_tot = (hCOC0 - s.sacrificialLayer) + (hPOE0 - s.coreLayer);
+  const Lrough = MAT.K_ROUGH * dh_tot;
+  const fRough = Math.exp(-Lrough);
+  const fCont  = Math.exp(-MAT.K_CONT * s.cvcmNow);
+  F.transparency.textContent =
+    `T = 95 × ${fThk.toFixed(3)}(두께${TH}μm) × ${fRad.toFixed(3)}(방사선 ${(env.RAD_RATE*t*100).toFixed(0)}krad) × ${fUV.toFixed(3)}(UV ${(env.UV_RATE*t).toFixed(0)}ESH) × ${fRough.toFixed(3)}(거칠기) × ${fCont.toFixed(3)}(오염) = ${s.transparency.toFixed(1)}%`;
+
+  // ── 출력 유지율 ─────────────────────────────────────────
+  F.power.textContent =
+    `${s.powerRetention.toFixed(1)}% = T(${s.transparency.toFixed(1)}) ÷ baseline(${s.baselineOptical.toFixed(1)}) × 100,  baseline = 95·exp(−10⁻⁴·${TH})`;
+
+  // ── 외층 COC 잔여 ───────────────────────────────────────
+  const dh_gross = MAT.EY * (env.AO_RATE * t) * 1e4 * MAT.CHI;
+  if (s.sacrificialLayer > 0) {
+    F.sacrificial.textContent =
+      `t_COC = h_COC₀(${hCOC0.toFixed(0)}) − Δh(${dh_gross.toFixed(1)}) = ${s.sacrificialLayer.toFixed(1)}μm,  Δh = E_y·F_AO·10⁴·χ at t=${t.toFixed(1)}년`;
+  } else {
+    F.sacrificial.textContent =
+      `0μm — 외층 COC ${hCOC0.toFixed(0)}μm 완전 소진 (AO Δh ${dh_gross.toFixed(0)} ≥ h_COC₀ ${hCOC0.toFixed(0)})`;
+  }
+
+  // ── POE 코어 상태 ───────────────────────────────────────
+  if (s.sacrificialLayer > 0) {
+    F.core.textContent =
+      `t_POE = h_POE₀ = ${TH}·${fPOE.toFixed(2)} = ${hPOE0.toFixed(0)}μm  (외층 COC 잔존 → POE 무침식)`;
+  } else {
+    const overshoot = dh_gross - hCOC0;
+    F.core.textContent =
+      `t_POE = h_POE₀(${hPOE0.toFixed(0)}) − overshoot(${overshoot.toFixed(1)})·μ_core(1.8) = ${s.coreLayer.toFixed(1)}μm`;
+  }
+
+  // ── 예상 수명 ───────────────────────────────────────────
+  if (lifetime === 0) {
+    let why = '';
+    if (s.lowTBrittle) why = `Tg ${s.Tg.toFixed(0)}℃ − T_MIN(−150) = ${(s.Tg+150).toFixed(0)} > 350 → 저온 취성`;
+    else if (s.highTSoften) why = `T_MAX(150) − Tg ${s.Tg.toFixed(0)}℃ = ${(150-s.Tg).toFixed(0)} > 0 → 고온 연화 (Tg가 운용 최고온 아래)`;
+    else why = `즉시 임계 도달`;
+    F.life.textContent = `0년 — ${why}`;
+  } else if (lifetime >= SIM_HORIZON) {
+    F.life.textContent = `${SIM_HORIZON}년 — 미션 horizon(${SIM_HORIZON}년) 내 모든 채널 안전 영역`;
+  } else {
+    // lifetime + dt 시점에서 발화하는 채널 식별
+    const probe = simulateAt(S, lifetime + MAT.lifetimeStep);
+    const channel = probe.failModes[0] || '미확정';
+    F.life.textContent = `${lifetime}년 — 다음 step t=${(lifetime+MAT.lifetimeStep).toFixed(1)}년에 [${channel}] 트립`;
+  }
+
+  // ── 고장 원인 (트립 채널과 그 시점 핵심 값) ─────────────
+  if (lifetime === 0 || (lifetime < SIM_HORIZON)) {
+    let probeState;
+    if (lifetime === 0) probeState = s;
+    else probeState = simulateAt(S, lifetime + MAT.lifetimeStep);
+
+    const ch = probeState.failModes[0] || '';
+    let detail = '';
+    if (ch.startsWith('Tg')) {
+      detail = `Tg = ${probeState.Tg.toFixed(0)}℃`;
+    } else if (ch.startsWith('AO')) {
+      detail = `t_COC = 0, AO Δh = ${(MAT.EY*env.AO_RATE*probeState.t*1e4*MAT.CHI).toFixed(0)} ≥ h_COC₀ ${hCOC0.toFixed(0)}`;
+    } else if (ch.startsWith('Outgassing TML')) {
+      detail = `TML = ${probeState.tmlNow.toFixed(3)}% ≥ 1.0%`;
+    } else if (ch.startsWith('Outgassing CVCM')) {
+      detail = `CVCM_eff = ${probeState.cvcmNow.toFixed(3)}% ≥ 0.1%`;
+    } else if (ch.startsWith('광학')) {
+      detail = `T = ${probeState.transparency.toFixed(1)}% < T₀·0.60 = ${(MAT.T0*MAT.CRIT_T_RATIO).toFixed(0)}%`;
+    } else if (ch.startsWith('열응력')) {
+      detail = `σ_eff = ${probeState.thermalStress.toFixed(2)} MPa > σ_adh ${MAT.SIGMA_ADH}`;
+    } else if (ch.startsWith('열사이클')) {
+      detail = `D = (N/N_ref)·(σ/σ_adh)² = ${probeState.fatigueIndex.toFixed(3)} ≥ 1.0`;
+    }
+    F.fail.textContent = ch ? `[${ch}] ${detail}` : '통과 — 모든 채널 안전 영역';
+  } else {
+    F.fail.textContent = `통과 — 모든 채널 안전 영역`;
+  }
 }
 
 /* =========================================================
