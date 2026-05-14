@@ -289,17 +289,60 @@ canvas{
 .poe-layer{background:linear-gradient(to bottom,#66bb6a,#2e7d32);}
 .coc-layer{background:linear-gradient(to bottom,#42a5f5,#1565c0);}
 
+/* ── Mobile / narrow viewport ──────────────────────────── */
 @media(max-width:900px){
 
   .wrap{
     grid-template-columns:1fr;
     grid-template-rows:auto 1fr;
+    height:auto;
+    min-height:calc(100vh - 60px);
   }
 
   .side{
-    height:520px;
+    height:auto;
+    max-height:48vh;        /* 사이드바가 화면을 가리지 않도록 */
+    overflow-y:auto;
+    border-right:0;
+    border-bottom:1px solid #1a2a4a;
   }
 
+  .main{
+    min-height:52vh;        /* 캔버스 영역 항상 확보 */
+  }
+
+  /* HUD overlay를 작은 화면에서도 보이도록 축소 */
+  .hud{
+    width:180px;
+    top:8px;
+    right:8px;
+    padding:8px 10px;
+  }
+  .hud h2{ font-size:11px; margin-bottom:6px; }
+  .hud .row{ padding:3px 0; font-size:11px; }
+
+  .phase{
+    width:auto;
+    max-width:42%;
+    left:8px;
+    top:8px;
+    padding:8px 10px;
+    font-size:11px;
+  }
+
+  .msg{
+    padding:7px 14px;
+    font-size:11px;
+    bottom:14px;
+  }
+
+}
+
+/* 매우 작은 화면(랜드스케이프 폰 등) — HUD 숨겨 시뮬에 집중 */
+@media(max-width:900px) and (max-height:500px){
+  .hud{ display:none; }
+  .side{ max-height:40vh; }
+  .main{ min-height:60vh; }
 }
 </style>
 </head>
