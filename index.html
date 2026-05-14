@@ -332,6 +332,37 @@ button:disabled{
   font-weight:bold;
 }
 
+.card-formula{
+  margin-top:6px;
+  padding:5px 7px;
+  background:#03050f;
+  border-left:2px solid #1a2a4a;
+  border-radius:3px;
+  color:#7e93b5;
+  font-family:Consolas,monospace;
+  font-size:10px;
+  line-height:1.4;
+  word-break:break-word;
+}
+
+.card-tag{
+  display:inline-block;
+  padding:1px 6px;
+  margin-left:6px;
+  background:#1a2a4a;
+  border-radius:8px;
+  font-size:9px;
+  font-weight:normal;
+  color:#9fc4ee;
+  vertical-align:middle;
+}
+
+/* 모바일 ─ 도출식 살짝 더 축소 */
+@media(max-width:600px){
+  .card-formula{ font-size:9.5px; padding:4px 6px; }
+  .card-tag{ font-size:8.5px; padding:1px 5px; }
+}
+
 .good{color:#00e676}
 .warn{color:#ffb300}
 .bad{color:#ff4444}
@@ -760,33 +791,39 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
     <button id="runBtn">🚀 시뮬레이션 시작</button>
 
     <div class="card">
-      <b>광투과율</b>
+      <b>광투과율 <span class="card-tag">Ch3</span></b>
       <div id="transparencyResult" class="value">-</div>
+      <div class="card-formula">T = T₀·exp(−α·TH)·exp(−k_rad·rad·t·100)·exp(−k_UV·UV·t)·exp(−L_rough)·exp(−k_cont·CVCM_eff)</div>
     </div>
 
     <div class="card">
       <b>출력 유지율</b>
       <div id="powerResult" class="value">-</div>
+      <div class="card-formula">T(t) ÷ baseline · 100% &nbsp;(baseline = T₀·exp(−α·TH), 두께 손실 제외 시간 의존만)</div>
     </div>
 
     <div class="card">
-      <b>희생층 잔여 두께</b>
+      <b>외층 COC 잔여 <span class="card-tag">Ch1</span></b>
       <div id="sacrificialResult" class="value">-</div>
+      <div class="card-formula">t_COC = max(0, h_COC₀ − E_y·F_AO·10⁴·χ),&nbsp; h_COC₀ = TH·(1−rPOE/100)</div>
     </div>
 
     <div class="card">
-      <b>기능 유지층 상태</b>
+      <b>POE 코어 상태 <span class="card-tag">Ch1</span></b>
       <div id="coreResult" class="value">-</div>
+      <div class="card-formula">COC 소진 후: t_POE = max(0, h_POE₀ − (Δh_gross − h_COC₀)·μ_core)&nbsp; (μ_core = 1.8)</div>
     </div>
 
     <div class="card">
       <b>예상 수명</b>
       <div id="lifeResult" class="value">-</div>
+      <div class="card-formula">7채널 중 어느 하나라도 임계 도달한 최초 시각의 직전 step (t − dt)</div>
     </div>
 
     <div class="card">
       <b>고장 원인</b>
       <div id="failResult" style="font-size:13px;line-height:1.7">-</div>
+      <div class="card-formula">Tg(즉시) · AO 침식 · Outgassing · 광학 · 정적박리 · 피로 · TML/CVCM 중 발화 채널</div>
     </div>
 
   </div>
@@ -1097,7 +1134,7 @@ function simulateAt(S, t){
   if (aoFail)       failModes.push("AO 침식 (COC 소진)");
   if (tmlFail)      failModes.push("Outgassing TML 초과");
   if (cvcmFail)     failModes.push("Outgassing CVCM 초과");
-  if (opticalFail)  failModes.push("광학 열화 (투과율 80% 미달)");
+  if (opticalFail)  failModes.push("광학 열화 (투과율 60% 미달)");
   if (stressFail)   failModes.push("열응력 박리 (정적)");
   if (fatigueFail)  failModes.push("열사이클 피로 박리");
 
@@ -1107,8 +1144,9 @@ function simulateAt(S, t){
     uvDose:  env.UV_RATE  * t,
     aoFluence: FAO,
     cycles:  N_t,
-    sacrificial0: hPOE0, core0: hCOC0,
-    sacrificialLayer: tPOE, coreLayer: tCOC,
+    // AO swap 반영: 외층=COC, 코어=POE
+    sacrificial0: hCOC0, core0: hPOE0,
+    sacrificialLayer: tCOC, coreLayer: tPOE,
     transparency: T_opt, baselineOptical, powerRetention,
     modulus: E_t, thermalStress: sigma, fatigueIndex: D_t,
     tmlNow: TML_t, cvcmNow: CVCM_eff,
