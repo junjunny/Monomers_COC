@@ -1,14 +1,927 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COC/POE 우주 봉지재 시뮬레이터</title>
+
+<style>
+body{
+  margin:0;
+  background:#03050f;
+  color:#dde6f5;
+  font-family:Arial,sans-serif;
+  overflow:hidden;
+}
+
+header{
+  height:60px;
+  background:#080d1e;
+  border-bottom:1px solid #1a2a4a;
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+}
+
+header h1{
+  margin:0;
+  font-size:18px;
+}
+
+.wrap{
+  display:grid;
+  grid-template-columns:320px 1fr;
+  height:calc(100vh - 60px);
+}
+
+.side{
+  background:#080d1e;
+  border-right:1px solid #1a2a4a;
+  padding:18px;
+  overflow:auto;
+}
+
+.main{
+  position:relative;
+  background:#020617;
+}
+
+label{
+  display:block;
+  margin-top:16px;
+  font-size:13px;
+  color:#9fb3d1;
+}
+
+input,select{
+  width:100%;
+  margin-top:6px;
+}
+
+button{
+  width:100%;
+  padding:13px;
+  margin-top:22px;
+  border:0;
+  border-radius:8px;
+  background:#2563eb;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#1d4ed8;
+}
+
+button:disabled{
+  background:#334155;
+  cursor:not-allowed;
+}
+
+.card{
+  background:#0d1530;
+  border:1px solid #1a2a4a;
+  border-radius:8px;
+  padding:12px;
+  margin-top:10px;
+}
+
+.card b{
+  display:block;
+  margin-bottom:6px;
+  color:#00d4ff;
+  font-size:13px;
+}
+
+.value{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.good{color:#00e676}
+.warn{color:#ffb300}
+.bad{color:#ff4444}
+
+.warning{
+  margin-top:8px;
+  padding:8px;
+  border-radius:6px;
+  background:#3a1010;
+  border:1px solid #ff4444;
+  color:#ff8888;
+  font-size:12px;
+  display:none;
+}
+
+canvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.hud{
+  position:absolute;
+  top:18px;
+  right:18px;
+  width:260px;
+  background:rgba(8,13,30,.92);
+  border:1px solid #1a2a4a;
+  border-radius:10px;
+  padding:14px;
+}
+
+.hud h2{
+  margin:0 0 10px;
+  color:#00d4ff;
+  font-size:14px;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px solid #1a2a4a;
+  font-size:13px;
+}
+
+.phase{
+  position:absolute;
+  left:18px;
+  top:18px;
+  background:rgba(8,13,30,.92);
+  border:1px solid #1a2a4a;
+  border-radius:10px;
+  padding:14px;
+  width:250px;
+}
+
+.phase b{
+  color:#00d4ff;
+}
+
+.msg{
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(8,13,30,.92);
+  border:1px solid #1a2a4a;
+  border-radius:10px;
+  padding:12px 22px;
+  font-weight:bold;
+}
+
+.hint{
+  color:#6c8aba;
+  font-size:11px;
+  font-weight:normal;
+  margin-left:4px;
+}
+
+/* ── 슬라이더 직관 시각화 ── */
+.nb-viz{
+  position:relative;
+  margin:8px 0 4px;
+}
+
+.nb-bar{
+  height:10px;
+  background:linear-gradient(to right,#4caf50 0%,#ffb300 50%,#ef5350 100%);
+  border-radius:5px;
+}
+
+.nb-marker{
+  position:absolute;
+  top:-2px;
+  width:6px;
+  height:14px;
+  background:#fff;
+  border-radius:3px;
+  box-shadow:0 0 4px rgba(0,0,0,.7);
+  transform:translateX(-50%);
+  transition:left .15s;
+  pointer-events:none;
+}
+
+.nb-info{
+  display:flex;
+  justify-content:space-between;
+  font-size:10px;
+  color:#9fb3d1;
+  margin-top:3px;
+}
+
+.th-viz{
+  height:44px;
+  margin:8px 0 4px;
+  background:#03050f;
+  border:1px solid #1a2a4a;
+  border-radius:4px;
+  display:flex;
+  align-items:flex-end;
+  padding:2px;
+}
+
+.th-film{
+  width:100%;
+  background:linear-gradient(to bottom,#00d4ff,#2563eb);
+  border-radius:2px;
+  transition:height .15s;
+}
+
+.ratio-viz{
+  display:flex;
+  flex-direction:column;
+  height:56px;
+  border-radius:4px;
+  overflow:hidden;
+  border:1px solid #1a2a4a;
+  margin:8px 0 4px;
+}
+
+.ratio-viz .layer{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:700;
+  color:#03050f;
+  min-height:0;
+  transition:flex-grow .15s;
+}
+
+.poe-layer{background:linear-gradient(to bottom,#66bb6a,#2e7d32);}
+.coc-layer{background:linear-gradient(to bottom,#42a5f5,#1565c0);}
+
+@media(max-width:900px){
+
+  .wrap{
+    grid-template-columns:1fr;
+    grid-template-rows:auto 1fr;
+  }
+
+  .side{
+    height:520px;
+  }
+
+}
+</style>
 </head>
+
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+
+<header>
+  <h1>COC/POE 우주 태양전지 봉지재 수명 예측 시뮬레이터</h1>
+</header>
+
+<div class="wrap">
+
+  <div class="side">
+
+    <label>미션 종류</label>
+    <select id="mission">
+      <option value="LEO">LEO 저궤도</option>
+      <option value="SSO">SSO 태양동기궤도</option>
+      <option value="GEO">GEO 정지궤도</option>
+      <option value="LUNAR">달 궤도</option>
+    </select>
+
+    <label>노보넨 함량: <span id="nbv">35</span> mol% <span class="hint" id="nbTgHint">(Tg ≈ 143℃)</span></label>
+    <input id="nb" type="range" min="20" max="55" value="35">
+    <div class="nb-viz">
+      <div class="nb-bar"></div>
+      <div class="nb-marker" id="nbMarker"></div>
+      <div class="nb-info"><span>유연</span><span>강성</span></div>
+    </div>
+
+    <label>총 두께: <span id="thv">400</span> μm</label>
+    <input id="th" type="range" min="100" max="1000" value="400">
+    <div class="th-viz">
+      <div class="th-film" id="thFilm"></div>
+    </div>
+
+    <label>POE / COC 비율: POE <span id="poev">50</span>% / COC <span id="cocv">50</span>%</label>
+    <input id="poe" type="range" min="20" max="80" value="50">
+    <div class="ratio-viz">
+      <div class="layer poe-layer" id="poeLayer">POE 50%</div>
+      <div class="layer coc-layer" id="cocLayer">COC 50%</div>
+    </div>
+
+    <button id="runBtn">🚀 시뮬레이션 시작</button>
+
+    <div class="card">
+      <b>광투과율</b>
+      <div id="transparencyResult" class="value">-</div>
+    </div>
+
+    <div class="card">
+      <b>출력 유지율</b>
+      <div id="powerResult" class="value">-</div>
+    </div>
+
+    <div class="card">
+      <b>희생층 잔여 두께</b>
+      <div id="sacrificialResult" class="value">-</div>
+    </div>
+
+    <div class="card">
+      <b>기능 유지층 상태</b>
+      <div id="coreResult" class="value">-</div>
+    </div>
+
+    <div class="card">
+      <b>예상 수명</b>
+      <div id="lifeResult" class="value">-</div>
+    </div>
+
+    <div class="card">
+      <b>고장 원인</b>
+      <div id="failResult" style="font-size:13px;line-height:1.7">-</div>
+    </div>
+
+  </div>
+
+  <div class="main">
+
+    <canvas id="canvas"></canvas>
+
+    <div class="phase">
+      <b>현재 단계</b>
+      <div id="phaseText">대기 중</div>
+    </div>
+
+    <div class="hud">
+
+      <h2>실시간 봉지재 상태</h2>
+
+      <div class="row">
+        <span>열 안정성</span>
+        <span id="hudTemp">대기</span>
+      </div>
+
+      <div class="row">
+        <span>방사선 황변</span>
+        <span id="hudRad">대기</span>
+      </div>
+
+      <div class="row">
+        <span>AO 침식</span>
+        <span id="hudAO">대기</span>
+      </div>
+
+      <div class="row">
+        <span>핵심 기능층</span>
+        <span id="hudCore">대기</span>
+      </div>
+
+      <div class="row">
+        <span>층간 박리</span>
+        <span id="hudDelam">대기</span>
+      </div>
+
+    </div>
+
+    <div class="msg" id="msg">
+      시뮬레이션 준비 완료
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", ()=>{
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+const mission = document.getElementById("mission");
+const nb = document.getElementById("nb");
+const th = document.getElementById("th");
+const poe = document.getElementById("poe");
+
+const nbv = document.getElementById("nbv");
+const thv = document.getElementById("thv");
+const poev = document.getElementById("poev");
+const cocv = document.getElementById("cocv");
+
+const nbTgHint = document.getElementById("nbTgHint");
+const nbMarker = document.getElementById("nbMarker");
+const thFilm = document.getElementById("thFilm");
+const poeLayer = document.getElementById("poeLayer");
+const cocLayer = document.getElementById("cocLayer");
+
+const runBtn = document.getElementById("runBtn");
+
+const transparencyResult = document.getElementById("transparencyResult");
+const powerResult = document.getElementById("powerResult");
+const sacrificialResult = document.getElementById("sacrificialResult");
+const coreResult = document.getElementById("coreResult");
+const lifeResult = document.getElementById("lifeResult");
+const failResult = document.getElementById("failResult");
+
+const phaseText = document.getElementById("phaseText");
+
+const hudTemp = document.getElementById("hudTemp");
+const hudRad = document.getElementById("hudRad");
+const hudAO = document.getElementById("hudAO");
+const hudCore = document.getElementById("hudCore");
+const hudDelam = document.getElementById("hudDelam");
+
+const msg = document.getElementById("msg");
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+/* =========================================================
+   CONSTANTS  (값은 모두 placeholder — 사용자가 출처 기반으로 교체 예정)
+========================================================= */
+
+// 시뮬레이션 내부 탐색 범위 (수명 탐지 max horizon)
+const SIM_HORIZON = 15; // years
+
+// 미션별 환경
+const ENV = {
+  // LEO (ISS 400km, 경사각 51.6° 기준)
+  LEO: {
+    radPerYear: 50,        // krad/year (0.5 kGy/year, ISS급 차폐 LEO 운용 대표값)
+                           //   range 10~300 (0.1~3 kGy/year, 차폐 두께 의존)
+    uvPerYear: 5256,       // ESH/year  (일조비 ~60% × 8760h)
+    aoPerYear: 3.28e21,    // atoms/cm²/year (NASA MISSE 1&2)
+    tMin: -150, tMax: 150, // °C  (태양 직사 ↔ 지구 그늘)
+    cyclesPerYear: 5840    // 열사이클 횟수/year (90분/cycle)
+  },
+  SSO: {
+    radPerYear: 12, uvPerYear: 1.3, aoPerYear: 2e21,
+    tMin: -130, tMax: 130, cyclesPerYear: 5500
+  },
+  GEO: {
+    radPerYear: 60, uvPerYear: 1.5, aoPerYear: 0,
+    tMin: -180, tMax: 150, cyclesPerYear: 90
+  },
+  LUNAR: {
+    radPerYear: 30, uvPerYear: 1.4, aoPerYear: 0,
+    tMin: -170, tMax: 130, cyclesPerYear: 12
+  }
+};
+
+// 재료 / 모델 파라미터  (각 값의 근거는 formulas.html / formulas.pdf 참조)
+const MAT = {
+  // ── 광학 ──
+  transparency0: 95,              // %  (UV-Vis 측정 초기 투과율)
+  thicknessAttenuation: 0.0001,   // 1/μm  (Beer-Lambert 류 — 투명 COC 매우 작음)
+  kRad: 0.0001,                   // 1/krad (LEO 50 krad/y → 단독 ~25년에 80% 도달)
+  kUV:  0.000001,                 // 1/ESH  (LEO 5256 ESH/y → 단독 ~42년에 80% 도달)
+                                  //   ※ 두 채널 결합 시 ~12.8년에 임계, 다른 메커니즘과 경합
+  kSynergy: 0,                    // 검증 데이터 없으면 0 (보수적)
+  kRoughness: 0.001,              // 1/μm   (AO 침식 → 거칠기 → 산란)
+
+  // ── Tg 회귀식 (NB mol% → Tg °C) ──
+  //   TOPAS COC 실측: NB 37mol%→130℃, 54mol%→158℃ → 기울기 4.5℃/mol%
+  tgIntercept: -15,
+  tgSlope: 4.5,
+  tgBrittleMargin: 200,           // (Tg − tMin) > 이 값이면 저온 취성 위험
+  tgSoftenMargin: 20,             // (tMax − Tg) < 이 값이면 고온 연화 위험
+
+  // ── 기계 (조성 의존 영률, 혼합 법칙) ──
+  E_COC: 3000,                    // MPa  (COC 단독 영률)
+  E_POE: 10,                      // MPa  (POE 단독 영률 — 매우 유연)
+  kCrosslink: 0.0001,             // 1/krad  (방사선 가교에 의한 모듈러스 증가)
+  cteCOC: 60e-6,                  // 1/K  (COC CTE, 40~60 ppm/℃)
+  ctePOE: 180e-6,                 // 1/K  (POE CTE, 150~200 ppm/℃)
+  thermalStressScale: 0.05,       // 구속 완화 인자 — 다층 구속·응력 완화·표면 응력 농도
+                                  //   를 묶은 경험 인자. full-constraint 응력 × 0.05
+
+  // ── 접착 / 박리 ──
+  adhesion: 5,                    // MPa  (peel 30 N/cm ÷ 봉지층 0.6mm ≈ 5 MPa 환산)
+
+  // ── AO 침식 ──
+  erosionYield: 3.5e-24,          // cm³/atom (폴리올레핀, NASA MISSE)
+  cmToUm: 1e4,                    // cm → μm 단위 환산
+  shieldingFactor: 0.2,           // 차폐/입사각 보정 (cover glass 부분 차폐)
+  coreErosionMultiplier: 1.8,     // 희생층(POE) 소진 후 코어(COC) 침식 가속
+
+  // ── Outgassing (조성 의존 saturation) ──
+  //   ASTM E595 기준 TML<1.0%, CVCM<0.1%. POE는 휘발성 높음, COC는 매우 낮음.
+  tmlPOE: 1.5,                    // %  POE 단독 saturation TML
+  tmlCOC: 0.3,                    // %  COC 단독 saturation TML
+  cvcmPOE: 0.12,                  // %  POE 단독 saturation CVCM
+  cvcmCOC: 0.03,                  // %  COC 단독 saturation CVCM
+  tauOutgas: 0.5,                 // year  1차 시정수 (대부분 첫 6개월에 방출)
+  kOutgasThickness: 1.0,          // TML 1%당 두께 손실 환산
+  kContamination: 0.05,           // CVCM → 광학 투과율 손실 (1/%)
+  aoCleansFactor: 0.3,            // LEO AO가 외부 응축물 제거 → contamination 감쇠
+
+  // ── 피로 (Coffin-Manson 형) ──
+  //   D = (N / N_ref) × (σ / σ_adh)^n,  실패 조건: D ≥ 1
+  fatigueRefCycles: 1e4,          // N_ref
+  fatigueExp: 4.0,                // n  (폴리머 계면 피로 표준 3~5)
+
+  // ── 임계값 ──
+  criticalTransparency: 80,       // %  (IEC 62788-1-7: 80% 유지 = 장기 20% 손실 한계)
+  criticalPowerRetention: 85,     // %
+  criticalCoreThickness: 40,      // μm (COC 최소 유지)
+  criticalFatigue: 1.0,           // Miner 누적
+
+  // ── 수치해석 ──
+  lifetimeStep: 0.05              // year
+};
+
+/* =========================================================
+   INPUT
+========================================================= */
+function getInput(){
+  const poeVal = +poe.value;
+  return {
+    mission: mission.value,
+    nb: +nb.value,
+    th: +th.value,
+    sacrificialRatio: poeVal,        // POE = 외층/희생층 (AO 보호)
+    coreRatio: 100 - poeVal,         // COC = 내층/기능 유지층
+    dur: SIM_HORIZON
+  };
+}
+
+function syncSliderLabels(){
+  const nbVal = +nb.value;
+  const thVal = +th.value;
+  const poeVal = +poe.value;
+
+  nbv.textContent = nbVal;
+  thv.textContent = thVal;
+  poev.textContent = poeVal;
+  cocv.textContent = 100 - poeVal;
+
+  // Tg 추정 (NB 회귀식)
+  const tgEst = MAT.tgIntercept + nbVal * MAT.tgSlope;
+  nbTgHint.textContent = `(Tg ≈ ${tgEst.toFixed(0)}℃)`;
+
+  // NB 마커 위치 (슬라이더 범위에 맞춤)
+  const nbPct = (nbVal - 20) / (55 - 20) * 100;
+  nbMarker.style.left = nbPct + "%";
+
+  // 두께 시각화: 4~40px 단면 두께
+  const thMin = 100, thMax = 1000;
+  const filmHeight = 4 + (thVal - thMin) / (thMax - thMin) * 36;
+  thFilm.style.height = filmHeight + "px";
+
+  // POE/COC 적층 비율
+  poeLayer.style.flexGrow = poeVal;
+  cocLayer.style.flexGrow = 100 - poeVal;
+  poeLayer.textContent = `POE ${poeVal}%`;
+  cocLayer.textContent = `COC ${100 - poeVal}%`;
+}
+
+[nb, th, poe].forEach(el =>
+  el.addEventListener("input", syncSliderLabels)
+);
+syncSliderLabels();
+
+/* =========================================================
+   SIMULATION CORE
+   ─ simulateAt(S, t): 임의 시각 t년의 봉지재 상태를 반환
+   ─ 모든 열화 채널이 결합되어 t의 함수로 계산됨
+========================================================= */
+function simulateAt(S, t){
+  const env = ENV[S.mission];
+
+  // 누적 노출량
+  const radDose   = env.radPerYear * t;          // krad
+  const uvDose    = env.uvPerYear  * t;          // ESH
+  const aoFluence = env.aoPerYear  * t;          // atoms/cm²
+  const cycles    = env.cyclesPerYear * t;       // count
+
+  // 초기 층 두께
+  const sacrificial0 = S.th * (S.sacrificialRatio / 100);
+  const core0        = S.th * (S.coreRatio        / 100);
+
+  // ── (1) AO 침식: 희생층 → 코어층 (가속 침식) ──
+  const grossErosion =
+    MAT.erosionYield * aoFluence * MAT.cmToUm * MAT.shieldingFactor;
+
+  let sacrificialLayer = sacrificial0 - grossErosion;
+  let coreLayer = core0;
+  if (sacrificialLayer < 0){
+    const overshoot = -sacrificialLayer;
+    sacrificialLayer = 0;
+    coreLayer = Math.max(0, core0 - overshoot * MAT.coreErosionMultiplier);
+  }
+
+  // ── (2) AO → 표면 거칠기 → 광산란 (광학 결합) ──
+  const erodedTotal =
+    (sacrificial0 - sacrificialLayer) + (core0 - coreLayer);
+  const roughnessLoss = MAT.kRoughness * erodedTotal;
+
+  // ── (8) Outgassing: 조성 의존 saturation × 1차 시정수 transient ──
+  //   TML_sat(POE,COC) = TML_POE · f_POE + TML_COC · f_COC
+  //   TML(t) = TML_sat · (1 − exp(−t/τ))
+  const poeFrac = S.sacrificialRatio / 100;       // POE = 외층/희생
+  const cocFrac = S.coreRatio / 100;              // COC = 내층/기능
+  const tmlSat  = MAT.tmlPOE  * poeFrac + MAT.tmlCOC  * cocFrac;
+  const cvcmSat = MAT.cvcmPOE * poeFrac + MAT.cvcmCOC * cocFrac;
+  const outgasFraction   = 1 - Math.exp(-t / MAT.tauOutgas);
+  const tmlNow           = tmlSat  * outgasFraction;            // % mass loss
+  const cvcmNow          = cvcmSat * outgasFraction;            // % condensable
+  const outgasThicknessLoss =
+    S.th * (tmlNow / 100) * MAT.kOutgasThickness;               // μm
+  // LEO에서는 AO가 외부 응축물을 지속 제거 → 유효 contamination 감소
+  const effectiveContamination = cvcmNow * (1 - MAT.aoCleansFactor);
+
+  // outgassing은 코어층(내부) 두께도 줄임 (아직 살아있다면 균등 분배)
+  const totalLayerNow = sacrificialLayer + coreLayer;
+  if (totalLayerNow > 0){
+    const sacShare  = sacrificialLayer / totalLayerNow;
+    const coreShare = coreLayer        / totalLayerNow;
+    sacrificialLayer = Math.max(0, sacrificialLayer - outgasThicknessLoss * sacShare);
+    coreLayer        = Math.max(0, coreLayer        - outgasThicknessLoss * coreShare);
+  }
+
+  // ── (3) 광학 열화: 두께 + 방사선 + UV + 시너지 + 거칠기 + 오염 ──
+  const baselineOptical =
+    MAT.transparency0 * Math.exp(-MAT.thicknessAttenuation * S.th);
+
+  const transparency =
+    baselineOptical *
+    Math.exp(-MAT.kRad * radDose) *
+    Math.exp(-MAT.kUV  * uvDose) *
+    Math.exp(-MAT.kSynergy * radDose * uvDose) *
+    Math.exp(-roughnessLoss) *
+    Math.exp(-MAT.kContamination * effectiveContamination);
+
+  const powerRetention = baselineOptical > 0
+    ? (transparency / baselineOptical) * 100
+    : 0;
+
+  // ── (4) 영률 (혼합 법칙) + 방사선 가교 보정 ──
+  //   E_base = E_COC · f_COC + E_POE · f_POE
+  //   E(rad) = E_base · (1 + k_xl · D_rad)
+  const E_base  = MAT.E_COC * cocFrac + MAT.E_POE * poeFrac;
+  const modulus = E_base * (1 + MAT.kCrosslink * radDose);
+
+  // ── (5) 열응력 (ΔT × |Δα| × E) ──
+  const deltaT = env.tMax - env.tMin;
+  const thermalStress =
+    modulus * Math.abs(MAT.cteCOC - MAT.ctePOE) * deltaT *
+    MAT.thermalStressScale;
+
+  // ── (6) 열사이클 피로 누적 (Coffin-Manson형) ──
+  const stressRatio = thermalStress / MAT.adhesion;
+  const fatigueIndex =
+    (cycles / MAT.fatigueRefCycles) *
+    Math.pow(Math.max(0, stressRatio), MAT.fatigueExp);
+
+  // ── (7) Tg 정렬 검사 (이중 임계: 운용 범위 통과 + 저온 취성) ──
+  const tg = MAT.tgIntercept + S.nb * MAT.tgSlope;
+  const tgPassesRange = (tg > env.tMin) && (tg < env.tMax);
+  const lowTBrittle  = (tg - env.tMin) > MAT.tgBrittleMargin;
+  const highTSoften  = (env.tMax - tg) < MAT.tgSoftenMargin;
+
+  // ── 실패 모드 판정 ──
+  const failModes = [];
+  if (transparency    < MAT.criticalTransparency)    failModes.push("황변/광학 성능 저하");
+  if (powerRetention  < MAT.criticalPowerRetention)  failModes.push("태양전지 출력 감소");
+  if (sacrificialLayer <= 0)                         failModes.push("AO 희생층 소진");
+  if (coreLayer       < MAT.criticalCoreThickness)   failModes.push("핵심 기능층 손상");
+  if (thermalStress   > MAT.adhesion)                failModes.push("정적 박리 응력 초과");
+  if (fatigueIndex   >= MAT.criticalFatigue)         failModes.push("열사이클 피로 파괴");
+  if (tgPassesRange)                                 failModes.push("운용 온도 내 Tg 통과");
+  if (lowTBrittle)                                   failModes.push("저온 취성 위험");
+  if (highTSoften)                                   failModes.push("고온 연화 위험");
+
+  return {
+    t, radDose, uvDose, aoFluence, cycles,
+    sacrificial0, core0, sacrificialLayer, coreLayer,
+    transparency, baselineOptical, powerRetention,
+    modulus, thermalStress, fatigueIndex,
+    tg, tgPassesRange, lowTBrittle, highTSoften,
+    tmlNow, cvcmNow, outgasThicknessLoss,
+    failModes
+  };
+}
+
+// 임계값 최초 도달 시각 = 수명
+function findLifetime(S){
+  const dt = MAT.lifetimeStep;
+  if (simulateAt(S, 0).failModes.length > 0) return 0;
+  for (let t = dt; t <= S.dur + dt/2; t += dt){
+    if (simulateAt(S, t).failModes.length > 0){
+      return +Math.max(0.1, t).toFixed(2);
+    }
+  }
+  return S.dur;
+}
+
+/* =========================================================
+   UI UPDATE
+========================================================= */
+function tone(ok){ return ok ? "good" : "bad"; }
+
+function updateHUD(state){
+  const tgOK = !state.tgPassesRange && !state.lowTBrittle && !state.highTSoften;
+  hudTemp.className = tone(tgOK);
+  hudTemp.textContent = tgOK ? "안정" : "위험";
+
+  const radOK = state.transparency >= MAT.criticalTransparency;
+  hudRad.className = tone(radOK);
+  hudRad.textContent = radOK ? "양호" : "황변";
+
+  const aoOK = state.sacrificialLayer > 0;
+  hudAO.className = tone(aoOK);
+  hudAO.textContent = aoOK ? "보호중" : "소진";
+
+  const coreOK = state.coreLayer > MAT.criticalCoreThickness;
+  hudCore.className = tone(coreOK);
+  hudCore.textContent = coreOK ? "유지" : "손상";
+
+  const delamOK =
+    state.thermalStress < MAT.adhesion &&
+    state.fatigueIndex  < MAT.criticalFatigue;
+  hudDelam.className = tone(delamOK);
+  hudDelam.textContent = delamOK ? "안정" : "박리 위험";
+}
+
+function updateSidebar(finalState, lifetime){
+  transparencyResult.textContent = finalState.transparency.toFixed(1) + " %";
+  powerResult.textContent        = finalState.powerRetention.toFixed(1) + " %";
+  sacrificialResult.textContent  = finalState.sacrificialLayer.toFixed(1) + " μm";
+  coreResult.textContent         = finalState.coreLayer.toFixed(1) + " μm";
+  lifeResult.textContent         = lifetime + " 년";
+  failResult.innerHTML = finalState.failModes.length
+    ? finalState.failModes.map(x => "• " + x).join("<br>")
+    : "통과";
+}
+
+/* =========================================================
+   ANIMATION LOOP
+   ─ 발사 단계 (0~0.2): 로켓 애니
+   ─ 운용 단계 (0.2~1.0): t년차 → simulateAt(t) → HUD 갱신
+========================================================= */
+let W, H;
+let stars = [];
+let running = false;
+let progress = 0;
+let currentSession = null; // {S, finalState, lifetime}
+
+function resize(){
+  W = canvas.width  = canvas.clientWidth;
+  H = canvas.height = canvas.clientHeight;
+  stars = [];
+  for (let i = 0; i < 220; i++){
+    stars.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*1.5,
+      op: Math.random()
+    });
+  }
+}
+window.addEventListener("resize", resize);
+resize();
+
+function startSimulation(){
+  const S = getInput();
+  // S.dur = SIM_HORIZON 으로 들어와서 findLifetime 탐색 상한이 됨
+  const lifetime = findLifetime(S);
+
+  // 운용 가능 기간 = 첫 실패 시각 (수명). 이 구간만 애니메이션.
+  const simDur = Math.max(0.1, lifetime);
+  S.dur = simDur;
+  const finalState = simulateAt(S, simDur);
+
+  currentSession = { S, finalState, lifetime };
+  updateSidebar(finalState, lifetime);
+
+  // 즉시 실패 (Tg 운용범위 통과 등)
+  if (lifetime === 0){
+    msg.textContent = "⚠ 현재 조건은 즉시 실패 — 운용 불가능";
+    phaseText.textContent = "운용 불가능 (t = 0)";
+    updateHUD(finalState);
+    running = false;
+    progress = 1;
+    draw();
+    return;
+  }
+
+  msg.textContent = `시뮬레이션 실행 중 (운용 가능 기간 ${lifetime.toFixed(1)}년)`;
+  running = true;
+  progress = 0;
+  requestAnimationFrame(loop);
+}
+
+runBtn.addEventListener("click", startSimulation);
+
+function loop(){
+  progress = Math.min(1, progress + 0.003);
+  draw();
+
+  if (currentSession && progress >= 0.2){
+    const p = (progress - 0.2) / 0.8;
+    const t = p * currentSession.S.dur;
+    const state = simulateAt(currentSession.S, t);
+    updateHUD(state);
+    phaseText.textContent =
+      `궤도 운용 / ${t.toFixed(2)}년차 (rad ${state.radDose.toFixed(1)} krad)`;
+  } else {
+    phaseText.textContent = "발사 및 상승";
+  }
+
+  if (running && progress < 1){
+    requestAnimationFrame(loop);
+  } else if (progress >= 1){
+    running = false;
+    const lt = currentSession.lifetime;
+    if (lt >= SIM_HORIZON){
+      msg.textContent = `✓ 장기 운용 검증 완료 — ${SIM_HORIZON}년 이내 실패 모드 없음`;
+      phaseText.textContent = `${SIM_HORIZON}년차 (한계 미도달)`;
+    } else {
+      msg.textContent = `수명 한계 도달 — ${lt.toFixed(1)}년`;
+      phaseText.textContent = `${lt.toFixed(2)}년차 (한계 도달)`;
+    }
+  }
+}
+
+/* =========================================================
+   DRAWING  (디자인은 추후 디렉팅 — 최소 구현만)
+========================================================= */
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, W, H);
+
+  stars.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${s.op})`;
+    ctx.fill();
+  });
+
+  if (progress < 0.2){
+    drawRocket(progress / 0.2);
+  } else {
+    drawOrbit((progress - 0.2) / 0.8);
+  }
+}
+
+function drawRocket(q){
+  const x = W/2;
+  const y = H*0.8 - q*H*0.9;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.fillStyle = "#dbeafe";
+  ctx.fillRect(-14, -70, 28, 90);
+
+  ctx.beginPath();
+  ctx.moveTo(-14, -70);
+  ctx.lineTo(0, -105);
+  ctx.lineTo(14, -70);
+  ctx.fill();
+
+  ctx.fillStyle = "#1d4ed8";
+  ctx.fillRect(-38, -25, 24, 12);
+  ctx.fillRect(14, -25, 24, 12);
+
+  const flame = ctx.createLinearGradient(0, 20, 0, 100);
+  flame.addColorStop(0, "rgba(255,200,80,0.9)");
+  flame.addColorStop(1, "rgba(255,80,0,0)");
+  ctx.fillStyle = flame;
+  ctx.beginPath();
+  ctx.moveTo(-10, 20);
+  ctx.lineTo(10, 20);
+  ctx.lineTo(0, 90);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawOrbit(p){
+  const cx = W/2, cy = H/2;
+  const earthR = Math.min(W, H) * 0.12;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, earthR, 0, Math.PI*2);
+  ctx.fillStyle = "#1e40af";
+  ctx.fill();
+
+  const orbitR = earthR * 2.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, orbitR, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(0,212,255,0.3)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const angle = p * Math.PI * 8;
+  const sx = cx + orbitR * Math.cos(angle);
+  const sy = cy + orbitR * Math.sin(angle);
+  ctx.beginPath();
+  ctx.arc(sx, sy, 5, 0, Math.PI*2);
+  ctx.fillStyle = "#00d4ff";
+  ctx.fill();
+}
+
+});
+</script>
 </body>
 </html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>COC/POE 우주 봉지재 시뮬레이터 — Spec</title>
+<style>
+@font-face {
+  font-family: 'NotoSansKR';
+  src: url('fonts/NotoSansKR-Regular.otf') format('opentype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'NotoSansKR';
+  src: url('fonts/NotoSansKR-Bold.otf') format('opentype');
+  font-weight: 700;
+}
+
+@page { size: A4; margin: 18mm 16mm; }
+
+* { box-sizing: border-box; }
+body {
+  font-family: 'NotoSansKR', sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #222;
+}
+h1 {
+  font-size: 18pt;
+  color: #1d4ed8;
+  border-bottom: 2px solid #1d4ed8;
+  padding-bottom: 6px;
+  margin-top: 0;
+}
+h2 {
+  font-size: 14pt;
+  color: #1d4ed8;
+  border-left: 4px solid #1d4ed8;
+  padding-left: 8px;
+  margin-top: 24px;
+}
+h3 { font-size: 12pt; color: #333; margin-top: 18px; }
+h4 { font-size: 11pt; color: #555; margin-top: 14px; margin-bottom: 6px; }
+p, li { font-size: 10.5pt; }
+code, pre {
+  font-family: 'NotoSansKR', 'Courier New', monospace;
+  font-size: 9.5pt;
+}
+code {
+  background: #f0f3fa;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+pre {
+  background: #0d1530;
+  color: #dde6f5;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 9pt;
+  line-height: 1.45;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6px 0 12px;
+  font-size: 9.5pt;
+}
+th, td {
+  border: 1px solid #cdd6e3;
+  padding: 4px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #eef3ff; font-weight: 600; }
+.note {
+  background: #fff8e1;
+  border-left: 3px solid #ffb300;
+  padding: 6px 10px;
+  margin: 8px 0;
+  font-size: 9.5pt;
+}
+.new {
+  background: #e8f5e9;
+  color: #1b5e20;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9pt;
+}
+.subtle { color: #666; font-size: 9.5pt; }
+hr { border: none; border-top: 1px solid #cdd6e3; margin: 24px 0; }
+ol, ul { margin: 4px 0 8px 18px; }
+li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<h1>COC/POE 우주 태양전지 봉지재 수명 예측 시뮬레이터</h1>
+<p class="subtle">필요 데이터 목록 + 전체 구조 정리 — LEO 한정 운용 / Outgassing 채널 포함</p>
+
+<h2>[A] 사용자가 채워야 할 데이터 목록</h2>
+
+<h3>A. 환경 상수 <code>ENV.LEO</code> — 6개 값 (LEO만 운용, ISS 400km / 경사각 51.6° 기준)</h3>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>대표값 / 의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>radPerYear</code></td><td>krad/year</td><td><b>50 krad/year</b> (0.5 kGy/year, ISS급 차폐 LEO 운용 대표값. range 10~300 = 0.1~3 kGy/year). MDPI Electronics 12(19) 4058</td></tr>
+<tr><td><code>uvPerYear</code></td><td>ESH/year</td><td><b>5256 ESH/year</b> (일조비 ~60% × 8760h). NREL Solar Spectra (태양상수 1361 W/m²)</td></tr>
+<tr><td><code>aoPerYear</code></td><td>atoms/cm²/year</td><td><b>3.28 × 10²¹</b> atoms/cm²/year. NASA MISSE 1&amp;2 실측 (NTRS 20070002707)</td></tr>
+<tr><td><code>tMin</code></td><td>°C</td><td><b>-150</b> (지구 그늘 직진입 시)</td></tr>
+<tr><td><code>tMax</code></td><td>°C</td><td><b>+150</b> (태양 직사 시)</td></tr>
+<tr><td><code>cyclesPerYear</code></td><td>count</td><td><b>5840</b> (90분/cycle × 24×365). ΔT = 300℃</td></tr>
+</tbody>
+</table>
+<p class="note"><b>SSO/GEO/LUNAR</b>는 코드에 자리만 남겨두고 LEO 1세트만 입력하면 됨 — 데이터 수집 부담 1/4로 감소.</p>
+
+<h3>B. 재료 상수 <code>MAT</code> — 29개 값</h3>
+
+<h4>B-1. 광학 (6개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>transparency0</code></td><td>%</td><td>초기 투과율 (UV-Vis)</td></tr>
+<tr><td><code>thicknessAttenuation</code></td><td>1/μm</td><td>두께당 감쇠 (Beer-Lambert fit)</td></tr>
+<tr><td><code>kRad</code></td><td>1/krad</td><td>방사선 dose 당 황변 속도상수 (Co-60)</td></tr>
+<tr><td><code>kUV</code></td><td>1/ESH</td><td>UV 노출 당 황변 속도상수 (UV WOM)</td></tr>
+<tr><td><code>kSynergy</code></td><td>1/(krad·ESH)</td><td>방사선·UV 결합항. 데이터 없으면 0</td></tr>
+<tr><td><code>kRoughness</code></td><td>1/μm</td><td>AO 침식 → 거칠기 → 산란 (AFM/광산란)</td></tr>
+</tbody>
+</table>
+
+<h4>B-2. Tg 회귀식 (4개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>대표값 / 의미</th></tr></thead>
+<tbody>
+<tr><td><code>tgIntercept</code></td><td>°C</td><td>NB=0 절편 (POE Tg 부근)</td></tr>
+<tr><td><code>tgSlope</code></td><td>°C/mol%</td><td><b>≈ 4.5</b> (TOPAS COC: 37mol%→130℃, 54mol%→158℃)</td></tr>
+<tr><td><code>tgBrittleMargin</code></td><td>°C</td><td>(Tg − tMin) 초과 시 저온 취성</td></tr>
+<tr><td><code>tgSoftenMargin</code></td><td>°C</td><td>(tMax − Tg) 미만 시 고온 연화</td></tr>
+</tbody>
+</table>
+<p class="subtle">→ DSC로 NB 함량별 Tg 측정해서 선형회귀. 출처: ScienceDirect S0376738805006071, PMC5354357</p>
+
+<h4>B-3. 기계 / 열 (5개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>대표값 / 의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>modulus0</code></td><td>MPa</td><td>초기 영률 (DMA 또는 인장)</td></tr>
+<tr><td><code>kCrosslink</code></td><td>1/krad</td><td>방사선 가교에 의한 모듈러스 증가</td></tr>
+<tr><td><code>cteCOC</code></td><td>1/K</td><td><b>60e-6</b> (range 40~60 ppm/℃, TOPAS 데이터시트)</td></tr>
+<tr><td><code>ctePOE</code></td><td>1/K</td><td><b>180e-6</b> (range 150~200 ppm/℃, Wiley pip.3323) → Δα ≈ 120~140 ppm/℃</td></tr>
+<tr><td><code>thermalStressScale</code></td><td>—</td><td>구속 완화 인자 (full-constraint 응력 → 실제 응력, 0.001~0.1)</td></tr>
+</tbody>
+</table>
+
+<h4>B-4. 접착 (1개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>adhesion</code></td><td>MPa</td><td><b>5 MPa</b> 박리 임계 전단응력. 문헌 peel 강도 20~50 N/cm (대표 30 N/cm) ÷ 봉지층 두께 ~0.6mm ≈ 5 MPa로 환산</td></tr>
+</tbody>
+</table>
+
+<h4>B-5. AO 침식 (4개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>대표값 / 의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>erosionYield</code></td><td>cm³/atom</td><td><b>3.5e-24</b> (폴리올레핀 계열 3~4×10⁻²⁴, Kapton 기준 3×10⁻²⁴). NTRS 20090034484</td></tr>
+<tr><td><code>cmToUm</code></td><td>—</td><td>단위 환산 = 1e4 (고정)</td></tr>
+<tr><td><code>shieldingFactor</code></td><td>—</td><td>차폐/입사각 보정 (외부면=1.0, 내부면=0.05~)</td></tr>
+<tr><td><code>coreErosionMultiplier</code></td><td>—</td><td>희생층 소진 후 코어층 가속배수</td></tr>
+</tbody>
+</table>
+
+<h4>B-6. Outgassing <span class="new">신규</span> (6개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>tmlMax</code></td><td>%</td><td>총 질량 손실 (ASTM E595 기준 &lt; 1.0%)</td></tr>
+<tr><td><code>cvcmMax</code></td><td>%</td><td>응축성 휘발물 (ASTM E595 기준 &lt; 0.1%)</td></tr>
+<tr><td><code>tauOutgas</code></td><td>year</td><td>1차 시정수 (대부분 첫 6개월에 방출)</td></tr>
+<tr><td><code>kOutgasThickness</code></td><td>—</td><td>TML 1%당 두께 손실 환산</td></tr>
+<tr><td><code>kContamination</code></td><td>1/%</td><td>CVCM → 광학 투과율 손실</td></tr>
+<tr><td><code>aoCleansFactor</code></td><td>—</td><td>LEO에서 AO가 외부 응축물 제거 (0~1)</td></tr>
+</tbody>
+</table>
+
+<h4>B-7. 피로 (2개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>fatigueRefCycles</code></td><td>cycles</td><td>Coffin-Manson 기준 사이클 수</td></tr>
+<tr><td><code>fatigueExp</code></td><td>—</td><td>응력비 지수 (보통 2~4)</td></tr>
+</tbody>
+</table>
+
+<h4>B-8. 임계값 (4개)</h4>
+<table>
+<thead><tr><th>항목</th><th>단위</th><th>대표값 / 의미</th></tr></thead>
+<tbody>
+<tr><td><code>criticalTransparency</code></td><td>%</td><td>광학 실패 임계 (IEC 62788-1-7: 단기 5% 손실 / 장기 20% 손실 = 80% 유지)</td></tr>
+<tr><td><code>criticalPowerRetention</code></td><td>%</td><td>출력 실패 임계</td></tr>
+<tr><td><code>criticalCoreThickness</code></td><td>μm</td><td>핵심층 두께 실패 임계</td></tr>
+<tr><td><code>criticalFatigue</code></td><td>—</td><td>피로지수 임계 (보통 1.0)</td></tr>
+</tbody>
+</table>
+
+<h4>B-9. 수치해석 (1개, 물리값 아님)</h4>
+<ul><li><code>lifetimeStep</code> = 0.05 year (유지)</li></ul>
+
+<h3>출처별 추천 매핑</h3>
+<table>
+<thead><tr><th>데이터</th><th>1차 출처 추천</th></tr></thead>
+<tbody>
+<tr><td>우주환경 (rad, UV, AO, T)</td><td><b>ESA SPENVIS</b> (spenvis.oma.be), NASA AE9/AP9</td></tr>
+<tr><td>AO erosion yield</td><td><b>NASA MISSE 시리즈 보고서</b> (실제 비행 시험)</td></tr>
+<tr><td>COC/POE 물성</td><td>TOPAS / Mitsui APEL, Dow Engage POE 데이터시트</td></tr>
+<tr><td>방사선 황변 / 가교</td><td>Co-60 감마조사 후 UV-Vis, DMA 논문</td></tr>
+<tr><td>Outgassing (TML, CVCM)</td><td><b>ASTM E595</b> 시험 결과, NASA 'Outgassing Database'</td></tr>
+<tr><td>열사이클 피로</td><td>NASA-STD-6016, 위성용 봉지재 ASTM</td></tr>
+</tbody>
+</table>
+
+<h2>[B] 시뮬레이터 최종 구조</h2>
+
+<h3>1. 입력 (사이드바)</h3>
+<ul>
+<li>미션 종류 (LEO 고정, 그 외 표시는 코드에 남김)</li>
+<li>노보넨 함량 (mol%)</li>
+<li>총 두께 (μm)</li>
+<li>희생층 비율 (%)</li>
+<li>기능 유지층 비율 (%) ← <code>희생층 + 기능 유지층 ≤ 100%</code> 검증</li>
+<li>미션 기간 (년)</li>
+</ul>
+
+<h3>2. 상수 객체</h3>
+<ul>
+<li><code>ENV.LEO</code> — 6개 항목</li>
+<li><code>MAT</code> — 9개 그룹, 총 29개 항목</li>
+</ul>
+
+<h3>3. 시뮬레이션 코어 — <code>simulateAt(S, t)</code></h3>
+<p>임의 시각 t년의 봉지재 상태를 반환하는 순수함수. <b>8개 결합 채널</b>:</p>
+<pre>(1) AO 침식       : 희생층 → (소진 시) 코어층 가속 침식
+(2) AO → 거칠기   : 침식량 → 표면거칠기 → 광산란 손실
+(3) 광학 열화     : 두께 × 방사선 × UV × 시너지 × 거칠기 × 오염 (다중 결합)
+(4) 방사선 가교   : rad → 모듈러스 ↑
+(5) 열응력        : E(rad) × |Δα| × ΔT × 구속완화
+(6) 피로 누적     : (cycles/ref) × (응력비)^지수    Coffin-Manson형
+(7) Tg 정렬       : 운용범위 통과 / 저온 취성 / 고온 연화 3중 검사
+(8) Outgassing    : 1−exp(−t/τ) → TML(두께손실) + CVCM(광학오염)   ★신규</pre>
+
+<h4>결합 그래프</h4>
+<pre>방사선 ─► 황변 ──┐
+UV ───► 황변 ──┤
+시너지(rad·UV)─┤
+AO ─► 침식 ─► 거칠기 ─┼─► 투과율 ──► 출력 유지율
+Outgassing ─► CVCM ──┘
+       │      ↑ AO clean factor (LEO 한정 보정)
+       └─► TML ─► 추가 두께 손실 ─┐
+                                   │
+AO ─► 희생층 소진 ──► 코어층 가속 ─┴─► 층 두께
+
+방사선 ─► 가교 ─► 모듈러스 ↑ ─► 열응력 ↑ ─┬─► 정적 박리
+                                           │
+열사이클 횟수 ─────────────────────────────┴─► 피로 누적
+
+Tg ─┬─► 운용범위 통과 → 강성 변화/균열
+    ├─► 저온 취성 마진 부족 → 저온 파괴
+    └─► 고온 연화 마진 부족 → 고온 변형</pre>
+
+<h3>4. 수명 산정 — <code>findLifetime(S)</code></h3>
+<p><code>dt = 0.05</code>년 해상도로 시간 sweep, <b>임계값에 가장 먼저 도달한 시각</b> 반환.</p>
+
+<h3>5. 실패 모드 (9종)</h3>
+<ol>
+<li>황변/광학 성능 저하 <span class="subtle">(이제 outgassing 오염 포함)</span></li>
+<li>태양전지 출력 감소</li>
+<li>AO 희생층 소진</li>
+<li>핵심 기능층 손상 <span class="subtle">(AO + outgassing 두께 손실)</span></li>
+<li>정적 박리 응력 초과</li>
+<li>열사이클 피로 파괴</li>
+<li>운용 온도 내 Tg 통과</li>
+<li>저온 취성 위험</li>
+<li>고온 연화 위험</li>
+</ol>
+
+<h3>6. UI 동작</h3>
+<ul>
+<li><b>슬라이더</b>: 입력 시 라벨 즉시 sync, 비율 합 검증</li>
+<li><b>HUD (우상단)</b>: 운용 단계 동안 매 프레임 <code>simulateAt(t)</code> 결과로 5개 인디케이터 progressive 갱신</li>
+<li><b>사이드바 카드</b>: 미션 종료 시점 최종 상태 + 수명 표시</li>
+<li><b>Phase 텍스트</b>: "궤도 운용 / 3.2년차 (rad 16.0 krad)" 식 누적 노출량 동시 표시</li>
+</ul>
+
+<hr>
+
+<h2>현 상태 점검 결과 — 시뮬레이터 제작 가능성</h2>
+
+<h3>구조: ✅ 즉시 제작 가능</h3>
+<p>모든 매직넘버는 <code>ENV.LEO</code> / <code>MAT</code> 두 객체에 노출되어 있어, 데이터 출처 정리되면 값 교체만으로 바로 반영됩니다.</p>
+
+<h3>내용 점검 시 주의할 4가지</h3>
+<ol>
+<li><b>응력 단위 관점</b>: <code>E·Δα·ΔT</code>는 이미 [MPa]. <code>thermalStressScale</code>은 단위 환산이 아닌 <b>구속 완화 / 응력 완화 / 표면 응력 농도</b>를 묶은 경험적 보정 인자. 보통 0.001~0.1.</li>
+<li><b>차폐 인자 위치 의존</b>: <code>shieldingFactor</code>는 외부 표면이면 ≈ 1.0, 셀 사이 내부면이면 작아짐. 봉지재 위치 확정 후 값 결정.</li>
+<li><b>Tg 회귀식 placeholder</b>: 현재 <code>Tg = -15 + 4.8·NB</code>는 NB=20에서 81°C, NB=55에서 249°C로 LEO 운용범위에 항상 걸리는 비현실적 값. 실측치 1순위 교체.</li>
+<li><b>kSynergy</b>: 방사선·UV 시너지 데이터가 없으면 <b>0으로 두는 게 안전</b>. 추정값 넣지 말 것.</li>
+</ol>
+
+<h3>LEO 한정의 의미</h3>
+<p>실제 우주용 태양전지 위성은 <b>대부분 LEO에 존재 (운용 위성 수 80%+)</b>. Starlink, OneWeb, ISS, 허블, 큐브셋, 지구관측 위성 모두 LEO. AO는 LEO 고유 환경이며, 폴리머 봉지재가 가장 가혹하게 시험되는 곳이라 이 프로젝트의 1차 타겟으로 적절. GEO/심우주는 별도 최적화 영역.</p>
+
+<hr>
+
+<h2>다음 단계</h2>
+<ol>
+<li>위 데이터 출처 정리되면 <code>ENV.LEO</code> / <code>MAT</code> 두 객체의 값만 교체하면 즉시 반영</li>
+<li>디자인 디렉션 받은 후 캔버스 그리기 / UI 다듬기</li>
+<li>(필요시) 마이크로 데브리, ESD 채널 확장 — 현재 구조에 항만 추가하면 됨</li>
+</ol>
+
+</body>
+</html>

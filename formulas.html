@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>COC/POE 우주 봉지재 시뮬레이션 — 최종 식 정리</title>
+<style>
+@font-face {
+  font-family: 'NotoSansKR';
+  src: url('fonts/NotoSansKR-Regular.otf') format('opentype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'NotoSansKR';
+  src: url('fonts/NotoSansKR-Bold.otf') format('opentype');
+  font-weight: 700;
+}
+
+@page { size: A4; margin: 16mm 14mm; }
+
+* { box-sizing: border-box; }
+body {
+  font-family: 'NotoSansKR', sans-serif;
+  font-size: 10pt;
+  line-height: 1.55;
+  color: #1a1a1a;
+}
+h1 {
+  font-size: 17pt;
+  color: #1d4ed8;
+  border-bottom: 2px solid #1d4ed8;
+  padding-bottom: 6px;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+.subtitle {
+  color: #555;
+  font-size: 10pt;
+  margin-bottom: 20px;
+}
+h2 {
+  font-size: 13pt;
+  color: #1d4ed8;
+  border-left: 4px solid #1d4ed8;
+  padding-left: 8px;
+  margin-top: 22px;
+  margin-bottom: 8px;
+  page-break-after: avoid;
+}
+h3 {
+  font-size: 11pt;
+  color: #333;
+  margin-top: 14px;
+  margin-bottom: 4px;
+  page-break-after: avoid;
+}
+h4 {
+  font-size: 10.5pt;
+  color: #555;
+  margin-top: 10px;
+  margin-bottom: 3px;
+  page-break-after: avoid;
+}
+p, li { font-size: 10pt; margin: 4px 0; }
+code {
+  font-family: 'Courier New', monospace;
+  background: #f0f3fa;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9.5pt;
+}
+.eq {
+  background: #f8faff;
+  border: 1px solid #c5d3eb;
+  border-left: 3px solid #1d4ed8;
+  padding: 8px 12px;
+  margin: 6px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 10pt;
+  line-height: 1.7;
+  page-break-inside: avoid;
+}
+.eq b { color: #1d4ed8; font-family: 'NotoSansKR'; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 6px 0 10px;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+th, td {
+  border: 1px solid #cdd6e3;
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #eef3ff; font-weight: 600; }
+.cite {
+  color: #555;
+  font-size: 8.5pt;
+  font-style: italic;
+}
+.cite::before { content: "📑 "; }
+.note {
+  background: #fff8e1;
+  border-left: 3px solid #ffb300;
+  padding: 6px 10px;
+  margin: 6px 0;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+.box {
+  background: #e8f5e9;
+  border: 1px solid #66bb6a;
+  border-left: 3px solid #2e7d32;
+  padding: 8px 12px;
+  margin: 8px 0;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+.box b { color: #1b5e20; }
+hr { border: none; border-top: 1px solid #cdd6e3; margin: 18px 0; }
+ol, ul { margin: 4px 0 8px 20px; }
+li { margin: 2px 0; }
+.subtle { color: #666; font-size: 9pt; }
+.center { text-align: center; }
+.mech-num {
+  display: inline-block;
+  background: #1d4ed8;
+  color: white;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 9pt;
+  font-weight: bold;
+  line-height: 18px;
+  margin-right: 6px;
+}
+</style>
+</head>
+<body>
+
+<h1>COC/POE 우주 봉지재 수명 예측 — 최종 식 정리</h1>
+<p class="subtitle">Team Monomers · 공학기초설계 · LEO (ISS 400km, 경사각 51.6°) 운용 환경</p>
+
+<h2>1. 입력 변수 (슬라이더 3개)</h2>
+<table>
+<thead><tr><th width="14%">기호</th><th width="22%">의미</th><th width="18%">단위</th><th width="22%">범위</th><th width="24%">기본값</th></tr></thead>
+<tbody>
+<tr><td><code>NB</code></td><td>노보넨 함량</td><td>mol%</td><td>20 ~ 55</td><td>35</td></tr>
+<tr><td><code>TH</code></td><td>총 두께</td><td>μm</td><td>100 ~ 1000</td><td>400</td></tr>
+<tr><td><code>r<sub>POE</sub></code></td><td>POE 비율</td><td>%</td><td>20 ~ 80</td><td>50</td></tr>
+</tbody>
+</table>
+<p class="subtle">COC 비율 <code>r<sub>COC</sub> = 100 − r<sub>POE</sub></code> 자동. 미션 horizon은 <code>T<sub>sim</sub> = 15년</code> 고정 (수명 탐색 최대 범위).</p>
+
+<h2>2. 환경 상수 — LEO (ISS 400km 기준)</h2>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>Φ̇<sub>rad</sub></code></td><td>50 krad/year</td><td>방사선 dose rate (0.5 kGy/y, ISS급 차폐 LEO 대표값) <span class="cite">MDPI Electronics 12(19) 4058</span></td></tr>
+<tr><td><code>Φ̇<sub>UV</sub></code></td><td>5256 ESH/year</td><td>UV 등가태양시간 (일조비 60% × 8760h) <span class="cite">NREL Solar Spectra</span></td></tr>
+<tr><td><code>Φ̇<sub>AO</sub></code></td><td>3.28×10²¹ atoms/cm²/year</td><td>원자산소 fluence <span class="cite">NASA NTRS 20070002707 (MISSE 1&2)</span></td></tr>
+<tr><td><code>T<sub>max</sub></code></td><td>+150 ℃</td><td>태양 직사 시 운용 최고온</td></tr>
+<tr><td><code>T<sub>min</sub></code></td><td>−150 ℃</td><td>지구 그늘 시 운용 최저온</td></tr>
+<tr><td><code>ΔT</code></td><td>300 ℃</td><td>온도 변화폭</td></tr>
+<tr><td><code>N<sub>cyc</sub></code></td><td>5840 cycles/year</td><td>90분 궤도 기반 (8760h ÷ 1.5h) <span class="cite">PCBSync Satellite PCB</span></td></tr>
+</tbody>
+</table>
+
+<h2>3. 재료 상수</h2>
+
+<h4>3-1. 광학</h4>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>T₀</code></td><td>95 %</td><td>초기 광투과율 (UV-Vis)</td></tr>
+<tr><td><code>α</code></td><td>1×10⁻⁴ /μm</td><td>두께 감쇠 계수 (Beer-Lambert)</td></tr>
+<tr><td><code>k<sub>rad</sub></code></td><td>1×10⁻⁴ /krad</td><td>방사선 황변 속도상수</td></tr>
+<tr><td><code>k<sub>UV</sub></code></td><td>1×10⁻⁶ /ESH</td><td>UV 황변 속도상수</td></tr>
+<tr><td><code>k<sub>syn</sub></code></td><td>0</td><td>방사선·UV 시너지 (검증 데이터 없음 → 0)</td></tr>
+<tr><td><code>k<sub>rough</sub></code></td><td>1×10⁻³ /μm</td><td>AO 거칠기 → 광산란 손실</td></tr>
+</tbody>
+</table>
+
+<h4>3-2. Tg (NB 회귀식)</h4>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미 / 근거</th></tr></thead>
+<tbody>
+<tr><td><code>T<sub>g0</sub></code></td><td>−15 ℃</td><td>NB=0 절편 (POE Tg 부근)</td></tr>
+<tr><td><code>m<sub>g</sub></code></td><td>4.5 ℃/mol%</td><td>NB 1mol% 당 Tg 증가량 <span class="cite">ScienceDirect S0376738805006071, TOPAS 데이터시트</span></td></tr>
+</tbody>
+</table>
+
+<h4>3-3. 기계 (조성 의존 영률, 혼합 법칙)</h4>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>E<sub>COC</sub></code></td><td>3000 MPa</td><td>COC 단독 영률</td></tr>
+<tr><td><code>E<sub>POE</sub></code></td><td>10 MPa</td><td>POE 단독 영률 (매우 유연)</td></tr>
+<tr><td><code>k<sub>xl</sub></code></td><td>1×10⁻⁴ /krad</td><td>방사선 가교에 의한 모듈러스 증가</td></tr>
+<tr><td><code>α<sub>COC</sub></code></td><td>60 ppm/℃</td><td>COC 열팽창계수 <span class="cite">TOPAS, 40~60 ppm/℃</span></td></tr>
+<tr><td><code>α<sub>POE</sub></code></td><td>180 ppm/℃</td><td>POE 열팽창계수 <span class="cite">Wiley pip.3323, 150~200 ppm/℃</span></td></tr>
+<tr><td><code>η</code></td><td>0.05</td><td>구속 완화 인자 (full-constraint × 5%)</td></tr>
+<tr><td><code>σ<sub>adh</sub></code></td><td>5 MPa</td><td>박리 임계 전단응력 (peel 30 N/cm ÷ 0.6mm)</td></tr>
+</tbody>
+</table>
+
+<h4>3-4. AO 침식 / 피로</h4>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미 / 출처</th></tr></thead>
+<tbody>
+<tr><td><code>E<sub>y</sub></code></td><td>3.5×10⁻²⁴ cm³/atom</td><td>침식 수율 (폴리올레핀) <span class="cite">NASA NTRS 20090034484</span></td></tr>
+<tr><td><code>χ</code></td><td>0.2</td><td>차폐 인자 (cover glass 부분 차폐 가정)</td></tr>
+<tr><td><code>μ<sub>core</sub></code></td><td>1.8</td><td>POE 소진 후 COC 침식 가속 배수</td></tr>
+<tr><td><code>N<sub>ref</sub></code></td><td>1×10⁴ cycles</td><td>Coffin-Manson 기준 사이클</td></tr>
+<tr><td><code>n</code></td><td>4</td><td>응력비 지수 (폴리머 계면 피로 표준 3~5)</td></tr>
+</tbody>
+</table>
+
+<h4>3-5. Outgassing (조성 의존)</h4>
+<table>
+<thead><tr><th width="22%">기호</th><th width="20%">값</th><th>의미</th></tr></thead>
+<tbody>
+<tr><td><code>TML<sub>POE</sub></code></td><td>1.5 %</td><td>POE 단독 saturation TML</td></tr>
+<tr><td><code>TML<sub>COC</sub></code></td><td>0.3 %</td><td>COC 단독 saturation TML</td></tr>
+<tr><td><code>CVCM<sub>POE</sub></code></td><td>0.12 %</td><td>POE 단독 saturation CVCM</td></tr>
+<tr><td><code>CVCM<sub>COC</sub></code></td><td>0.03 %</td><td>COC 단독 saturation CVCM</td></tr>
+<tr><td><code>τ</code></td><td>0.5 year</td><td>1차 시정수 (대부분 첫 6개월에 방출)</td></tr>
+<tr><td><code>k<sub>cont</sub></code></td><td>0.05 /%</td><td>CVCM → 광학 투과율 손실</td></tr>
+<tr><td><code>γ<sub>AO</sub></code></td><td>0.3</td><td>LEO AO에 의한 외부 응축물 제거율</td></tr>
+</tbody>
+</table>
+<p class="cite">ASTM E595 기준 TML &lt; 1.0%, CVCM &lt; 0.1% — NASA GSFC Outgassing Database</p>
+
+<h4>3-6. 실패 임계값</h4>
+<table>
+<thead><tr><th width="40%">메커니즘</th><th width="22%">임계값</th><th>근거</th></tr></thead>
+<tbody>
+<tr><td>광투과율</td><td>T(t) &lt; 80 %</td><td>IEC 62788-1-7 장기 20% 손실 한계</td></tr>
+<tr><td>출력 유지율</td><td>P/P₀ &lt; 85 %</td><td>위성 운용 임계</td></tr>
+<tr><td>COC 잔여 두께</td><td>t<sub>COC</sub> &lt; 40 μm</td><td>기능 유지 최소 두께</td></tr>
+<tr><td>피로 누적</td><td>D ≥ 1.0</td><td>Miner's Rule</td></tr>
+<tr><td>정적 박리</td><td>σ &gt; σ<sub>adh</sub></td><td>전단응력 초과</td></tr>
+<tr><td>Tg 범위 통과</td><td>T<sub>min</sub> &lt; Tg &lt; T<sub>max</sub></td><td>운용 중 상변화</td></tr>
+</tbody>
+</table>
+
+<h2>4. 핵심 식 (8개 결합 채널)</h2>
+
+<h3><span class="mech-num">1</span>AO 침식 (POE 희생 + COC 가속)</h3>
+<div class="eq">
+<b>F<sub>AO</sub>(t)</b> = Φ̇<sub>AO</sub> · t<br>
+<b>Δh<sub>gross</sub>(t)</b> = E<sub>y</sub> · F<sub>AO</sub>(t) · 10⁴ · χ &nbsp;&nbsp; [μm]<br>
+<br>
+<b>t<sub>POE</sub>(t)</b> = max(0, h<sub>POE,0</sub> − Δh<sub>gross</sub>(t))<br>
+<b>if</b> Δh<sub>gross</sub> &gt; h<sub>POE,0</sub>:<br>
+&nbsp;&nbsp;<b>t<sub>COC</sub>(t)</b> = max(0, h<sub>COC,0</sub> − (Δh<sub>gross</sub> − h<sub>POE,0</sub>) · μ<sub>core</sub>)
+</div>
+<p class="subtle">초기 두께: h<sub>POE,0</sub> = TH·r<sub>POE</sub>/100, h<sub>COC,0</sub> = TH·r<sub>COC</sub>/100</p>
+
+<h3><span class="mech-num">2</span>AO → 표면 거칠기 → 광산란</h3>
+<div class="eq">
+<b>Δh<sub>tot</sub>(t)</b> = (h<sub>POE,0</sub> − t<sub>POE</sub>) + (h<sub>COC,0</sub> − t<sub>COC</sub>)<br>
+<b>L<sub>rough</sub>(t)</b> = k<sub>rough</sub> · Δh<sub>tot</sub>(t)
+</div>
+
+<h3><span class="mech-num">3</span>광학 열화 (다중 결합 multiplicative)</h3>
+<div class="eq">
+<b>T(t)</b> = T₀ · exp(−α·TH) · exp(−k<sub>rad</sub>·Φ̇<sub>rad</sub>·t)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; · exp(−k<sub>UV</sub>·Φ̇<sub>UV</sub>·t)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; · exp(−k<sub>syn</sub>·Φ̇<sub>rad</sub>·Φ̇<sub>UV</sub>·t²)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; · exp(−L<sub>rough</sub>(t))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; · exp(−k<sub>cont</sub> · CVCM<sub>eff</sub>(t))
+</div>
+<p class="subtle">각 항이 독립 채널이라 곱으로 결합. Beer-Lambert 일반화 형태.</p>
+
+<h3><span class="mech-num">4</span>방사선 가교 → 영률 증가 (혼합 법칙)</h3>
+<div class="eq">
+<b>E<sub>base</sub></b> = E<sub>COC</sub> · (r<sub>COC</sub>/100) + E<sub>POE</sub> · (r<sub>POE</sub>/100)<br>
+<b>E(t)</b> = E<sub>base</sub> · (1 + k<sub>xl</sub> · Φ̇<sub>rad</sub> · t)
+</div>
+
+<h3><span class="mech-num">5</span>열응력 (CTE 불일치)</h3>
+<div class="eq">
+<b>Δα</b> = |α<sub>POE</sub> − α<sub>COC</sub>| = 120 ppm/℃<br>
+<b>σ<sub>full</sub>(t)</b> = E(t) · Δα · ΔT<br>
+<b>σ(t)</b> = σ<sub>full</sub>(t) · η &nbsp;&nbsp; [MPa]
+</div>
+<p class="subtle">σ<sub>full</sub>은 완전 구속 가정 응력. η는 다층 구속 완화·응력 완화·표면 응력 농도를 묶은 경험 인자.</p>
+
+<h3><span class="mech-num">6</span>열사이클 피로 누적 (Coffin-Manson + Miner)</h3>
+<div class="eq">
+<b>N(t)</b> = N<sub>cyc</sub> · t<br>
+<b>D(t)</b> = (N(t) / N<sub>ref</sub>) · (σ(t) / σ<sub>adh</sub>)<sup>n</sup>
+</div>
+<p class="subtle">실패 조건: D(t) ≥ 1.0. 정적 박리: σ(t) &gt; σ<sub>adh</sub> 즉시 fail.</p>
+
+<h3><span class="mech-num">7</span>Tg 정렬 (3중 검사)</h3>
+<div class="eq">
+<b>T<sub>g</sub></b> = T<sub>g0</sub> + m<sub>g</sub> · NB &nbsp;&nbsp; [℃]<br>
+<br>
+<b>(a) 운용범위 통과</b>: T<sub>min</sub> &lt; T<sub>g</sub> &lt; T<sub>max</sub> → 사이클 중 상변화 실패<br>
+<b>(b) 저온 취성</b>: (T<sub>g</sub> − T<sub>min</sub>) &gt; 200℃ → 저온 균열<br>
+<b>(c) 고온 연화</b>: (T<sub>max</sub> − T<sub>g</sub>) &lt; 20℃ → 고온 변형
+</div>
+
+<h3><span class="mech-num">8</span>Outgassing (조성 의존 saturation × transient)</h3>
+<div class="eq">
+<b>TML<sub>sat</sub></b> = TML<sub>POE</sub> · f<sub>POE</sub> + TML<sub>COC</sub> · f<sub>COC</sub><br>
+<b>CVCM<sub>sat</sub></b> = CVCM<sub>POE</sub> · f<sub>POE</sub> + CVCM<sub>COC</sub> · f<sub>COC</sub><br>
+<br>
+<b>TML(t)</b> = TML<sub>sat</sub> · (1 − exp(−t/τ))<br>
+<b>CVCM<sub>eff</sub>(t)</b> = CVCM<sub>sat</sub> · (1 − exp(−t/τ)) · (1 − γ<sub>AO</sub>)<br>
+<br>
+<b>Δh<sub>outgas</sub>(t)</b> = TH · TML(t)/100 &nbsp;&nbsp; (양 층에 비례 배분)
+</div>
+<p class="subtle">f<sub>POE</sub> = r<sub>POE</sub>/100, f<sub>COC</sub> = r<sub>COC</sub>/100. AO가 외부 응축물을 제거 → 유효 CVCM 감소 (LEO 한정 보정).</p>
+
+<h2>5. 수명 산정 — 직렬 신뢰성 (최단)</h2>
+
+<div class="box">
+<b>L<sub>final</sub></b> = min<sub>t ∈ [0, T<sub>sim</sub>]</sub> { t | 어느 한 채널이라도 실패 임계 도달 }<br>
+<br>
+탐색: dt = 0.05년 해상도로 sweep, 첫 실패 시각 반환.<br>
+어떤 채널도 임계 미도달 시 L<sub>final</sub> = T<sub>sim</sub>(=15년) 반환.
+</div>
+
+<p>9가지 실패 모드를 매 시각 t에 동시 평가:</p>
+<ol>
+<li>광투과율 T(t) &lt; 80%</li>
+<li>출력 유지율 P/P₀ &lt; 85%</li>
+<li>POE 희생층 소진 (t<sub>POE</sub> ≤ 0)</li>
+<li>COC 기능층 임계 (t<sub>COC</sub> &lt; 40μm)</li>
+<li>정적 박리 (σ &gt; σ<sub>adh</sub>)</li>
+<li>피로 누적 (D ≥ 1.0)</li>
+<li>Tg 운용범위 통과</li>
+<li>저온 취성 마진 초과</li>
+<li>고온 연화 마진 미달</li>
+</ol>
+
+<h2>6. 결합 그래프 (메커니즘 상호작용)</h2>
+<pre style="background:#0d1530;color:#dde6f5;padding:10px;border-radius:6px;font-size:8.5pt;line-height:1.45">
+방사선 ─► 황변 ──┐
+UV ───► 황변 ──┤
+시너지 ────────┤
+AO ─► 침식 ─► 거칠기 ─┼─► <b>광투과율 T(t)</b> ──► 출력 유지율
+Outgassing ─► CVCM ──┘            ↑
+       │      ↑ γ<sub>AO</sub> (LEO 한정 AO 청소)
+       └─► TML ─► 두께 손실 ─┐
+                              │
+AO ─► POE 소진 ──► COC 가속 ─┴─► <b>층 두께</b> (h<sub>POE</sub>, h<sub>COC</sub>)
+
+방사선 ─► 가교 ─► E↑ ─► σ<sub>full</sub>↑ ─┬─► <b>정적 박리</b>
+                                             │
+N<sub>cyc</sub> · t ──────────────────────────┴─► <b>피로 누적 D</b>
+
+NB ─► Tg ─┬─► 운용범위 통과 검사
+          ├─► 저온 취성 마진
+          └─► 고온 연화 마진
+</pre>
+
+<h2>7. 검증 — 파라미터 영역별 dominant 실패 모드</h2>
+
+<table>
+<thead>
+<tr><th>구성</th><th>예측 수명</th><th>한계 메커니즘</th><th>해석</th></tr>
+</thead>
+<tbody>
+<tr><td>기본: NB=35, TH=400, POE=50%</td><td>~12.6년</td><td>AO 침식</td><td>POE(200μm) 8.7년 → COC 가속 침식 4년</td></tr>
+<tr><td>얇은 막: TH=200, POE=50%</td><td>~5.8년</td><td>AO 침식</td><td>POE 100μm는 4.4년에 소진</td></tr>
+<tr><td>두꺼운 막: TH=800, POE=50%</td><td>~9.0년</td><td>광학 (두께 페널티)</td><td>Beer-Lambert α·TH가 초기 투과율 낮춤</td></tr>
+<tr><td>COC-heavy: POE=20%</td><td>~3.1년</td><td>피로 누적</td><td>E<sub>base</sub> 높음 → σ 증가 → D 가속</td></tr>
+<tr><td>POE-heavy: POE=80%</td><td>~14년</td><td>AO + 광학</td><td>두꺼운 희생층이 14년 보호, 그러나 outgassing 증가</td></tr>
+<tr><td>저 NB=20</td><td>0년 (즉시)</td><td>Tg 운용범위 통과</td><td>Tg=75℃, 운용 −150~+150 범위 안 통과</td></tr>
+</tbody>
+</table>
+
+<div class="box">
+<b>설계 의의:</b> 슬라이더 3개가 각각 다른 실패 모드를 dominant로 만들어 트레이드오프를 실증.
+<br>· <b>NB</b>: 너무 낮으면 Tg 운용범위 통과 → 즉시 실패. 충분히 높여야 함.
+<br>· <b>TH</b>: 얇으면 AO에 빠르게 침식, 두꺼우면 광학 손실. 중간 두께가 최적.
+<br>· <b>POE 비율</b>: 너무 낮으면 피로 파괴 (rigid), 너무 높으면 outgassing/광학 오염. 50% 부근이 균형.
+</div>
+
+<h2>8. 출처 목록</h2>
+<table>
+<thead><tr><th width="30%">항목</th><th>출처</th></tr></thead>
+<tbody>
+<tr><td>LEO 방사선 환경</td><td>MDPI Electronics 12(19), 4058 — "Assessment of the True Radiation Environment in LEO"</td></tr>
+<tr><td>AO Fluence (ISS)</td><td>NASA NTRS 20070002707 — "MISSE PEACE Polymers" (Banks et al.)</td></tr>
+<tr><td>AO Erosion Yield</td><td>NASA NTRS 20090034484 — "Atomic Oxygen Erosion Yield Prediction"</td></tr>
+<tr><td>UV 태양상수</td><td>NREL Solar Spectra (1361 W/m²)</td></tr>
+<tr><td>LEO 열사이클</td><td>PCBSync "Satellite PCB Requirements" (90분 궤도, ΔT 300℃)</td></tr>
+<tr><td>COC Tg 회귀</td><td>ScienceDirect S0376738805006071 / PMC5354357 / TOPAS 데이터시트</td></tr>
+<tr><td>COC CTE</td><td>TOPAS Advanced Polymers 공식 데이터시트</td></tr>
+<tr><td>POE CTE</td><td>Wiley Progress in Photovoltaics 10.1002/pip.3323</td></tr>
+<tr><td>Outgassing 기준</td><td>ASTM E595-15(2021) / NASA GSFC Outgassing Database</td></tr>
+<tr><td>광투과율 임계</td><td>IEC 62788-1-7 / Wiley pip.3551</td></tr>
+<tr><td>열사이클 피로</td><td>ScienceDirect "Thermal Cycling" / INCURE Solar Panel Delamination Guide</td></tr>
+<tr><td>혼합 법칙</td><td>복합재료 Rule of Mixtures (학부 재료역학 표준)</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="subtle center">Team Monomers · 2026년 5월 · LEO COC/POE 봉지재 수명 예측 시뮬레이터</p>
+
+</body>
+</html>
