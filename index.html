@@ -79,6 +79,41 @@ button:disabled{
   cursor:not-allowed;
 }
 
+.preset-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:6px;
+  margin-top:6px;
+}
+
+.preset-btn{
+  padding:8px 4px;
+  margin:0;
+  border:1px solid #1a2a4a;
+  border-radius:6px;
+  background:#0d1530;
+  color:#dde6f5;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  transition:transform .08s, background .12s;
+}
+
+.preset-btn span{
+  font-size:9px;
+  font-weight:normal;
+  color:#9fb3d1;
+}
+
+.preset-btn:hover{ transform:translateY(-1px); }
+.preset-danger:hover{  background:#3a1010; border-color:#ff4444; }
+.preset-coc:hover{     background:#3a2410; border-color:#ffb300; }
+.preset-optimal:hover{ background:#103a1c; border-color:#00e676; }
+
 .card{
   background:#0d1530;
   border:1px solid #1a2a4a;
@@ -308,6 +343,13 @@ canvas{
       <div class="layer coc-layer" id="cocLayer">COC 50%</div>
     </div>
 
+    <label style="margin-top:18px">발표용 프리셋</label>
+    <div class="preset-row">
+      <button class="preset-btn preset-danger"  data-nb="20" data-th="400" data-poe="50">⚠ Danger<span>0년 Tg</span></button>
+      <button class="preset-btn preset-coc"     data-nb="40" data-th="400" data-poe="20">⚙ COC-Heavy<span>~4년 피로</span></button>
+      <button class="preset-btn preset-optimal" data-nb="40" data-th="400" data-poe="50">★ Optimal<span>~4년 광학</span></button>
+    </div>
+
     <button id="runBtn">🚀 시뮬레이션 시작</button>
 
     <div class="card">
@@ -475,8 +517,8 @@ const MAT = {
   K_XL:     1e-4,        // /krad   방사선 가교 상수
   CTE_COC:  60,          // ppm/℃  (TOPAS)
   CTE_POE:  180,         // ppm/℃  (Wiley pip.3323)
-  SIGMA_ADH:100,         // MPa     박리 임계 전단응력 (표면처리 폴리올레핀 계면 전단강도 50~100 MPa 상한)
-  // η(구속 완화 인자) 제거 — σfull 직접 사용. σ_full ≈ 54 MPa (50/50)을 안전마진과 함께 수용.
+  SIGMA_ADH:5,           // MPa     박리 임계 전단응력 (peel 30 N/cm ÷ 0.6mm = 5 MPa)
+  ETA:      0.05,        // 무차원  구속 완화 인자 (σ_full × η = σ_eff). 다층 구속·완화·표면 농도 묶음.
 
   // AO / 피로
   EY:       3.5e-24,     // cm³/atom AO 침식 수율 (NASA NTRS 20090034484)
@@ -569,23 +611,24 @@ function simulateAt(S, t){
   const hCOC0 = TH * fCOC;     // μm 초기 COC 두께
 
   // ── 채널 7: Tg 판정 (시간 무관, 즉시) ───────────────────
-  // Tg = Tg0 + mg × NB
+  // (a) 운용 범위 통과 조건 제거, (b)(c)만 유지
   const Tg = MAT.TG0 + MAT.MG * NB;
-  const tgFail = Tg < env.T_MAX;   // 고온 연화
+  const tgBrittle = (Tg - env.T_MIN) > 350;     // 저온 취성 (Tg > 200℃에서만)
+  const tgSoften  = (env.T_MAX - Tg) > 0;       // 고온 연화 (Tg < T_MAX → 운용 중 고무화)
 
-  // ── 채널 1: AO 침식 (POE 희생 → COC 가속 침식) ──────────
+  // ── 채널 1: AO 침식 (COC 희생/외층 → POE 코어 가속 침식) ──
   // FAO(t)     = Φ̇AO × t
   // Δhgross(t) = Ey × FAO × 10⁴ × χ
   const FAO      = env.AO_RATE * t;
   const dh_gross = MAT.EY * FAO * 1e4 * MAT.CHI;   // μm
 
   let tPOE, tCOC;
-  if (dh_gross <= hPOE0){
-    tPOE = hPOE0 - dh_gross;
-    tCOC = hCOC0;
+  if (dh_gross <= hCOC0){
+    tCOC = hCOC0 - dh_gross;
+    tPOE = hPOE0;
   } else {
-    tPOE = 0;
-    tCOC = Math.max(0, hCOC0 - (dh_gross - hPOE0) * MAT.MU_CORE);
+    tCOC = 0;
+    tPOE = Math.max(0, hPOE0 - (dh_gross - hCOC0) * MAT.MU_CORE);
   }
   const aoFail = tCOC <= 0;
 
@@ -627,9 +670,11 @@ function simulateAt(S, t){
   const E_t    = E_base * (1 + MAT.K_XL * env.RAD_RATE * t * 100);
 
   // ── 채널 5: 열응력 (정적 박리) ─────────────────────────
-  // Δα = |αPOE − αCOC|,  σ(t) = E(t) × Δα·10⁻⁶ × ΔT
+  // Δα = |αPOE − αCOC|
+  // σ_full(t) = E(t) × Δα·10⁻⁶ × ΔT
+  // σ_eff(t)  = η × σ_full   (구속 완화)
   const dAlpha = Math.abs(MAT.CTE_POE - MAT.CTE_COC);
-  const sigma  = E_t * (dAlpha * 1e-6) * env.DELTA_T;
+  const sigma  = MAT.ETA * E_t * (dAlpha * 1e-6) * env.DELTA_T;
   const stressFail = sigma > MAT.SIGMA_ADH;
 
   // ── 채널 6: 열사이클 피로 (Coffin-Manson + Miner) ──────
@@ -638,9 +683,10 @@ function simulateAt(S, t){
   const D_t = (N_t / MAT.N_REF) * Math.pow(sigma / MAT.SIGMA_ADH, MAT.N_EXP);
   const fatigueFail = D_t >= MAT.D_LIMIT;
 
-  // 실패 모드 (사용자 spec과 동일한 채널명)
+  // 실패 모드
   const failModes = [];
-  if (tgFail)       failModes.push("Tg 고온 연화");
+  if (tgBrittle)    failModes.push("Tg 저온 취성");
+  if (tgSoften)     failModes.push("Tg 고온 연화");
   if (aoFail)       failModes.push("AO 침식 (COC 소진)");
   if (tmlFail)      failModes.push("Outgassing TML 초과");
   if (cvcmFail)     failModes.push("Outgassing CVCM 초과");
@@ -660,8 +706,8 @@ function simulateAt(S, t){
     modulus: E_t, thermalStress: sigma, fatigueIndex: D_t,
     tmlNow: TML_t, cvcmNow: CVCM_eff,
     tgPassesRange: false,
-    lowTBrittle:   false,
-    highTSoften:   tgFail,
+    lowTBrittle:   tgBrittle,
+    highTSoften:   tgSoften,
     failModes
   };
 }
@@ -669,9 +715,10 @@ function simulateAt(S, t){
 // 임계값 최초 도달 시각 = 수명 (사용자 spec: life = t − dt)
 function findLifetime(S){
   const dt = MAT.lifetimeStep;
-  // 채널 7 (Tg) 즉시 판정
+  // 채널 7 (Tg) 즉시 판정 — (b) 저온 취성, (c) 고온 연화
   const Tg = MAT.TG0 + MAT.MG * S.nb;
-  if (Tg < ENV.LEO.T_MAX) return 0;
+  if ((Tg - ENV.LEO.T_MIN) > 350) return 0;
+  if ((ENV.LEO.T_MAX - Tg) > 0)   return 0;
 
   for (let t = dt; t <= S.dur + dt/2; t += dt){
     if (simulateAt(S, t).failModes.length > 0){
@@ -779,6 +826,16 @@ function startSimulation(){
 }
 
 runBtn.addEventListener("click", startSimulation);
+
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    nb.value  = btn.dataset.nb;
+    th.value  = btn.dataset.th;
+    poe.value = btn.dataset.poe;
+    syncSliderLabels();
+    startSimulation();
+  });
+});
 
 function loop(){
   progress = Math.min(1, progress + 0.003);
