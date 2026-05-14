@@ -347,7 +347,7 @@ canvas{
     <div class="preset-row">
       <button class="preset-btn preset-danger"  data-nb="20" data-th="400" data-poe="50">⚠ Danger<span>0년 Tg</span></button>
       <button class="preset-btn preset-coc"     data-nb="40" data-th="400" data-poe="20">⚙ COC-Heavy<span>~4년 피로</span></button>
-      <button class="preset-btn preset-optimal" data-nb="40" data-th="400" data-poe="50">★ Optimal<span>~4년 광학</span></button>
+      <button class="preset-btn preset-optimal" data-nb="40" data-th="600" data-poe="54">★ Optimal<span>~12년 광학</span></button>
     </div>
 
     <button id="runBtn">🚀 시뮬레이션 시작</button>
@@ -537,7 +537,7 @@ const MAT = {
   // ASTM E595: TML<1.0%, CVCM<0.1% (NASA GSFC)
 
   // 임계값 / 수치해석
-  CRIT_T_RATIO: 0.80,    // T_opt < T0 × 0.80 → 광학 fail
+  CRIT_T_RATIO: 0.60,    // T_opt < T0 × 0.60 → 광학 fail (우주용 보수 완화, IEC 0.80 → 0.60: LEO 10년+ 운용 허용)
   TML_LIMIT:    1.0,
   CVCM_LIMIT:   0.1,
   D_LIMIT:      1.0,
