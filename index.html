@@ -1028,12 +1028,6 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
       <div class="card-formula" id="fLife">시뮬 실행 시 대입값 표시</div>
     </div>
 
-    <div class="card">
-      <b>고장 원인</b>
-      <div id="failResult" style="font-size:13px;line-height:1.7">-</div>
-      <div class="card-formula" id="fFail">시뮬 실행 시 발화 채널 표시</div>
-    </div>
-
   </div>
 
   <div class="main">
@@ -1113,7 +1107,6 @@ const powerResult = document.getElementById("powerResult");
 const sacrificialResult = document.getElementById("sacrificialResult");
 const coreResult = document.getElementById("coreResult");
 const lifeResult = document.getElementById("lifeResult");
-const failResult = document.getElementById("failResult");
 
 // 카드별 동적 도출식 표시 div
 const F = {
@@ -1121,8 +1114,7 @@ const F = {
   power:        document.getElementById("fPower"),
   sacrificial:  document.getElementById("fSacrificial"),
   core:         document.getElementById("fCore"),
-  life:         document.getElementById("fLife"),
-  fail:         document.getElementById("fFail")
+  life:         document.getElementById("fLife")
 };
 
 const phaseText = document.getElementById("phaseText");
@@ -1429,9 +1421,6 @@ function updateSidebar(finalState, lifetime){
   sacrificialResult.textContent  = finalState.sacrificialLayer.toFixed(1) + " μm";
   coreResult.textContent         = finalState.coreLayer.toFixed(1) + " μm";
   lifeResult.textContent         = lifetime + " 년";
-  failResult.innerHTML = finalState.failModes.length
-    ? finalState.failModes.map(x => "• " + x).join("<br>")
-    : "통과";
 
   // 카드별 실제 대입값 도출
   updateBreakdowns(finalState, lifetime);
@@ -1487,48 +1476,38 @@ function updateBreakdowns(s, lifetime){
       `t_POE = h_POE₀(${hPOE0.toFixed(0)}) − overshoot(${overshoot.toFixed(1)})·μ_core(1.8) = ${s.coreLayer.toFixed(1)}μm`;
   }
 
-  // ── 예상 수명 ───────────────────────────────────────────
+  // ── 예상 수명 (트립 채널 + 핵심 값) ─────────────────────
   if (lifetime === 0) {
-    let why = s.highTSoften
-      ? `T_MAX(150) − Tg ${s.Tg.toFixed(0)}℃ = ${(150-s.Tg).toFixed(0)} > 0 → 고온 연화 (Tg가 운용 최고온 아래)`
+    const why = s.highTSoften
+      ? `Tg ${s.Tg.toFixed(0)}℃ < T_MAX 150℃ → 고온 연화 (운용 중 고무화)`
       : `즉시 임계 도달`;
     F.life.textContent = `0년 — ${why}`;
   } else if (lifetime >= SIM_HORIZON) {
-    F.life.textContent = `${SIM_HORIZON}년 — 미션 horizon(${SIM_HORIZON}년) 내 모든 채널 안전 영역`;
+    const causeKey = currentSession && currentSession.finalCause ? currentSession.finalCause.key : null;
+    const causeLabel = causeKey ? CHANNEL_INFO[causeKey].label : '미확정';
+    F.life.textContent = `${SIM_HORIZON}년 — horizon 내 모든 채널 안전 (선도 채널: ${causeLabel})`;
   } else {
-    // lifetime + dt 시점에서 발화하는 채널 식별
+    // lifetime + dt 시점에서 발화하는 채널과 핵심 수치 표시
     const probe = simulateAt(S, lifetime + MAT.lifetimeStep);
-    const channel = probe.failModes[0] || '미확정';
-    F.life.textContent = `${lifetime}년 — 다음 step t=${(lifetime+MAT.lifetimeStep).toFixed(1)}년에 [${channel}] 트립`;
-  }
-
-  // ── 고장 원인 (트립 채널과 그 시점 핵심 값) ─────────────
-  if (lifetime === 0 || (lifetime < SIM_HORIZON)) {
-    let probeState;
-    if (lifetime === 0) probeState = s;
-    else probeState = simulateAt(S, lifetime + MAT.lifetimeStep);
-
-    const ch = probeState.failModes[0] || '';
+    const ch = probe.failModes[0] || '미확정';
     let detail = '';
     if (ch.startsWith('Tg')) {
-      detail = `Tg = ${probeState.Tg.toFixed(0)}℃`;
+      detail = ` · Tg = ${probe.Tg.toFixed(0)}℃`;
     } else if (ch.startsWith('AO')) {
-      detail = `t_COC = 0, AO Δh = ${(MAT.EY*env.AO_RATE*probeState.t*1e4*MAT.CHI).toFixed(0)} ≥ h_COC₀ ${hCOC0.toFixed(0)}`;
+      detail = ` · AO Δh = ${(MAT.EY*env.AO_RATE*probe.t*1e4*MAT.CHI).toFixed(0)}μm ≥ h_COC₀ ${hCOC0.toFixed(0)}μm`;
     } else if (ch.startsWith('Outgassing TML')) {
-      detail = `TML = ${probeState.tmlNow.toFixed(3)}% ≥ 1.0%`;
+      detail = ` · TML = ${probe.tmlNow.toFixed(3)}% ≥ 1.0%`;
     } else if (ch.startsWith('Outgassing CVCM')) {
-      detail = `CVCM_eff = ${probeState.cvcmNow.toFixed(3)}% ≥ 0.1%`;
+      detail = ` · CVCM_eff = ${probe.cvcmNow.toFixed(3)}% ≥ 0.1%`;
     } else if (ch.startsWith('광학')) {
-      detail = `T = ${probeState.transparency.toFixed(1)}% < T₀·0.60 = ${(MAT.T0*MAT.CRIT_T_RATIO).toFixed(0)}%`;
+      detail = ` · T = ${probe.transparency.toFixed(1)}% < T₀·0.60 (${(MAT.T0*MAT.CRIT_T_RATIO).toFixed(0)}%)`;
     } else if (ch.startsWith('열응력')) {
-      detail = `σ_eff = ${probeState.thermalStress.toFixed(2)} MPa > σ_adh ${MAT.SIGMA_ADH}`;
+      detail = ` · σ_eff = ${probe.thermalStress.toFixed(2)} MPa > σ_adh ${MAT.SIGMA_ADH}`;
     } else if (ch.startsWith('열사이클')) {
       const NREF_eff = MAT.N_REF * Math.max(0.2, 1 - (S.nb - 30) * 0.02);
-      detail = `D = (N/N_ref_eff)·(σ/σ_adh)² = ${probeState.fatigueIndex.toFixed(3)} ≥ 1.0,  N_ref_eff = ${NREF_eff.toFixed(0)}(NB=${S.nb})`;
+      detail = ` · D = ${probe.fatigueIndex.toFixed(3)} ≥ 1.0, N_ref_eff = ${NREF_eff.toFixed(0)} (NB=${S.nb})`;
     }
-    F.fail.textContent = ch ? `[${ch}] ${detail}` : '통과 — 모든 채널 안전 영역';
-  } else {
-    F.fail.textContent = `통과 — 모든 채널 안전 영역`;
+    F.life.textContent = `${lifetime}년 — [${ch}]${detail}`;
   }
 }
 
