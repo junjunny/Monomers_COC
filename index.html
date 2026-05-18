@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>COC/POE 우주 봉지재 시뮬레이터</title>
+<title>Monomers: LEO Polymer Lifetime Simulator</title>
 
 <style>
 body{
@@ -17,19 +17,48 @@ body{
 
 header{
   height:60px;
-  background:#080d1e;
+  background:linear-gradient(180deg, #0a1024 0%, #060a18 100%);
   border-bottom:1px solid #1a2a4a;
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:0 20px;
+  gap:14px;
+  padding:0 22px;
+  box-shadow:0 1px 0 rgba(0,212,255,0.07), 0 8px 24px -16px rgba(0,212,255,0.18);
 }
 
-header h1{
+.brand-title{
   margin:0;
-  font-size:18px;
   flex:1;
-  line-height:1.2;
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:9px;
+  line-height:1.15;
+  font-family:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+}
+.brand-mark{
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:0.4px;
+  background:linear-gradient(120deg, #00d4ff 0%, #5b8cff 45%, #a855f7 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
+  text-shadow:0 0 22px rgba(91,140,255,0.18);
+}
+.brand-sep{
+  color:#3a5b8c;
+  font-weight:300;
+  font-size:20px;
+  align-self:baseline;
+}
+.brand-sub{
+  font-size:13.5px;
+  font-weight:500;
+  color:#9fc4ee;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
 }
 
 .doc-btn{
@@ -547,8 +576,12 @@ canvas{
     height:auto;
     min-height:54px;
     padding:8px 12px;
+    gap:10px;
   }
-  header h1{ font-size:14px; }
+  .brand-title{ gap:6px; }
+  .brand-mark{ font-size:18px; letter-spacing:0.2px; }
+  .brand-sep { font-size:16px; }
+  .brand-sub { font-size:11px; letter-spacing:1px; }
   .doc-btn{ padding:7px 10px; font-size:12px; }
 
   .wrap{
@@ -601,9 +634,12 @@ canvas{
 
 }
 
-/* 매우 좁은 화면(≤480px) — HUD 더 축소, 헤더 한 줄 유지 */
+/* 매우 좁은 화면(≤480px) — HUD 더 축소, 서브타이틀은 줄바꿈 */
 @media(max-width:480px){
-  header h1{ font-size:12.5px; }
+  .brand-title{ gap:4px 8px; }
+  .brand-mark{ font-size:16px; }
+  .brand-sep { display:none; }
+  .brand-sub { font-size:10px; letter-spacing:0.8px; flex-basis:100%; opacity:0.85; }
   .doc-btn{ padding:6px 9px; font-size:11px; }
   .hud{ width:140px; padding:6px 8px; }
   .hud h2{ font-size:10.5px; }
@@ -623,7 +659,9 @@ canvas{
 <body>
 
 <header>
-  <h1>COC/POE 우주 태양전지 봉지재 수명 예측 시뮬레이터</h1>
+  <h1 class="brand-title">
+    <span class="brand-mark">Monomers</span><span class="brand-sep">:</span><span class="brand-sub">LEO Polymer Lifetime Simulator</span>
+  </h1>
   <button id="docBtn" class="doc-btn">📖 모델 설명</button>
 </header>
 
@@ -1391,8 +1429,15 @@ let lastFrameTime = 0;
 const ANIM_TOTAL_MS = 6000; // 전체 애니메이션(발사 1.2s + 궤도 4.8s)
 
 function resize(){
-  W = canvas.width  = canvas.clientWidth;
-  H = canvas.height = canvas.clientHeight;
+  // DPR(devicePixelRatio) 적용 — 모바일/레티나에서 선·텍스트 선명화
+  const dpr = window.devicePixelRatio || 1;
+  const cw = canvas.clientWidth;
+  const ch = canvas.clientHeight;
+  canvas.width  = Math.round(cw * dpr);
+  canvas.height = Math.round(ch * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 모든 drawing은 CSS px 기준
+  W = cw;
+  H = ch;
   stars = [];
   for (let i = 0; i < 220; i++){
     stars.push({
@@ -1402,6 +1447,8 @@ function resize(){
       op: Math.random()
     });
   }
+  // 시뮬 종료 후 리사이즈가 와도 마지막 프레임 다시 그리기
+  if (!running) draw();
 }
 window.addEventListener("resize", resize);
 resize();
@@ -1415,8 +1462,9 @@ function startSimulation(){
   const simDur = Math.max(0.1, lifetime);
   S.dur = simDur;
   const finalState = simulateAt(S, simDur);
+  const finalCause = computeFinalCause(S, lifetime, finalState);
 
-  currentSession = { S, finalState, lifetime };
+  currentSession = { S, finalState, lifetime, finalCause };
   updateSidebar(finalState, lifetime);
 
   // 진행 중이던 애니메이션 프레임 취소 (중복 호출 시 속도 누적 방지)
@@ -1557,14 +1605,16 @@ function drawRocket(q){
   ctx.restore();
 }
 
-// ── Sun (우측 상단 고정 광원) ────────────────────────────
+// ── Sun (HUD에 가리지 않도록 우하단 고정. 모바일에서도 OK) ─
 function drawSun(){
-  const x = W - 60, y = 60;
-  const r = Math.max(14, Math.min(22, Math.min(W, H) * 0.03));
+  const r = Math.max(15, Math.min(24, Math.min(W, H) * 0.035));
+  const margin = r + 18;
+  const x = W - margin;
+  const y = H - margin;
   // 외곽 halo
   const halo = ctx.createRadialGradient(x, y, r, x, y, r * 3.2);
-  halo.addColorStop(0, 'rgba(255, 220, 100, 0.45)');
-  halo.addColorStop(0.5, 'rgba(255, 200, 70, 0.12)');
+  halo.addColorStop(0, 'rgba(255, 220, 100, 0.50)');
+  halo.addColorStop(0.5, 'rgba(255, 200, 70, 0.14)');
   halo.addColorStop(1, 'rgba(255, 200, 70, 0)');
   ctx.fillStyle = halo;
   ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI*2); ctx.fill();
@@ -1578,8 +1628,16 @@ function drawSun(){
   return { x, y, r };
 }
 
-// ── Earth (대기 + 해양 그라데이션 + 대륙 + 주야 음영) ─────
-function drawEarth(cx, cy, R, rot){
+// ── Earth (대기 + 해양 + 대륙 + 주야 음영, 태양 방향 기반 명암) ──
+function drawEarth(cx, cy, R, rot, sun){
+  // 태양 방향 단위벡터 (그라데이션 origin 결정)
+  let dx = 0.7, dy = -0.7;
+  if (sun){
+    const vx = sun.x - cx, vy = sun.y - cy;
+    const d  = Math.hypot(vx, vy) || 1;
+    dx = vx / d; dy = vy / d;
+  }
+
   // 대기 글로우
   const atm = ctx.createRadialGradient(cx, cy, R * 0.96, cx, cy, R * 1.22);
   atm.addColorStop(0, 'rgba(140, 200, 255, 0.55)');
@@ -1587,9 +1645,9 @@ function drawEarth(cx, cy, R, rot){
   ctx.fillStyle = atm;
   ctx.beginPath(); ctx.arc(cx, cy, R * 1.22, 0, Math.PI*2); ctx.fill();
 
-  // 해양 (태양이 우상단 → 우상단에서 밝게)
+  // 해양 (태양 방향에서 밝게)
   const ocean = ctx.createRadialGradient(
-    cx + R * 0.4, cy - R * 0.4, 0,
+    cx + R * 0.4 * dx, cy + R * 0.4 * dy, 0,
     cx, cy, R
   );
   ocean.addColorStop(0, '#7fbef5');
@@ -1598,7 +1656,7 @@ function drawEarth(cx, cy, R, rot){
   ctx.fillStyle = ocean;
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
 
-  // 대륙 (원 안쪽으로 클리핑 + 천천히 자전)
+  // 대륙 (자전)
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, R, 0, Math.PI*2);
@@ -1611,7 +1669,7 @@ function drawEarth(cx, cy, R, rot){
     [-0.55,  0.35, 0.28, 0.22, '#3a6a3a'],
     [ 0.50, -0.45, 0.22, 0.18, '#4a7a3a'],
     [ 0.30,  0.55, 0.25, 0.15, '#3d703a'],
-    [-0.10,  0.62, 0.18, 0.12, '#cfd8dc']  // 극지 빙하 느낌
+    [-0.10,  0.62, 0.18, 0.12, '#cfd8dc']
   ];
   continents.forEach(([x, y, w, h, color]) => {
     ctx.beginPath();
@@ -1621,10 +1679,10 @@ function drawEarth(cx, cy, R, rot){
   });
   ctx.restore();
 
-  // 주야 명암 (태양 반대쪽 = 좌하단이 어둠)
+  // 주야 명암 (태양 반대편이 어둠)
   const shade = ctx.createRadialGradient(
-    cx + R * 0.55, cy - R * 0.55, R * 0.2,
-    cx - R * 0.45, cy + R * 0.45, R * 1.3
+    cx + R * 0.55 * dx, cy + R * 0.55 * dy, R * 0.2,
+    cx - R * 0.45 * dx, cy - R * 0.45 * dy, R * 1.3
   );
   shade.addColorStop(0, 'rgba(0, 5, 20, 0)');
   shade.addColorStop(0.7, 'rgba(0, 5, 20, 0.45)');
@@ -1665,36 +1723,40 @@ function computeChannelMetrics(state, S){
   };
 }
 
-// 현재 가장 위협적인 채널 + 심각도
-function getDominantChannel(state, S){
-  const m = computeChannelMetrics(state, S);
-
-  // 실제 실패 발생 → 그 채널을 우선
-  if (state.failModes.length > 0){
-    const fm = state.failModes[0];
-    let key = 'ao';
-    for (const [prefix, k] of FAIL_KEY_MAP){
-      if (fm.startsWith(prefix)){ key = k; break; }
-    }
-    return { key, severity: 'fail', ratio: m[key], metrics: m };
+function failModeToKey(fm){
+  for (const [prefix, k] of FAIL_KEY_MAP){
+    if (fm.startsWith(prefix)) return k;
   }
+  return 'ao';
+}
 
-  // 실패 전 — 한계 사용률이 가장 높은 채널이 "최종 파괴 예상 원인"
+// 시뮬 시작 시 한 번 계산: "이 조성의 수명을 끝내는 원인" (애니 내내 고정)
+//   1) 호라이즌 내 실패 → 트립 채널
+//   2) 호라이즌 통과   → 마지막 시점의 최대 사용률 채널 (예상 선도)
+function computeFinalCause(S, lifetime, finalState){
+  if (finalState.failModes.length > 0){
+    return { key: failModeToKey(finalState.failModes[0]), kind: 'fail' };
+  }
+  if (lifetime < SIM_HORIZON){
+    const probe = simulateAt(S, lifetime + MAT.lifetimeStep);
+    if (probe.failModes.length > 0){
+      return { key: failModeToKey(probe.failModes[0]), kind: 'fail' };
+    }
+  }
+  // 호라이즌 통과 — 마지막 시점의 가장 위협적인 채널을 "예상 선도 채널"로
+  const m = computeChannelMetrics(finalState, S);
   let bestKey = 'optical';
   for (const k of Object.keys(m)){
     if (m[k] > m[bestKey]) bestKey = k;
   }
-  const r = m[bestKey];
-  const severity = r >= 0.66 ? 'high' : r >= 0.33 ? 'mid' : 'low';
-  return { key: bestKey, severity, ratio: r, metrics: m };
+  return { key: bestKey, kind: 'pass' };
 }
 
-// ── Hazards (AO 램 방향 스트릭 + 태양→위성 UV/방사선 빔) ──
-// 각 위해 강도는 해당 채널의 한계 사용률에 비례해 동적으로 변화
-function drawHazards(sx, sy, angle, sun, dom, earth){
-  const m = (dom && dom.metrics) ? dom.metrics : { optical: 0, ao: 0 };
+// ── Hazards: 위해 강도는 라이브 metrics에 비례 (글로우의 시각적 펌프 역할) ──
+function drawHazards(sx, sy, angle, sun, liveMetrics, earth){
+  const m = liveMetrics || { optical: 0, ao: 0 };
 
-  // 1) UV / 방사선 빔: 태양 → 위성 (지구 그늘이면 차단). 광학 사용률↑ 시 굵고 진하게.
+  // 1) 태양 → 위성 UV/방사선 빔 (지구 그늘 시 차단)
   if (sun){
     const dx = sx - sun.x, dy = sy - sun.y;
     const ex = earth.cx - sun.x, ey = earth.cy - sun.y;
@@ -1705,8 +1767,8 @@ function drawHazards(sx, sy, angle, sun, dom, earth){
 
     if (!inEclipse){
       const ratio = Math.min(1, m.optical);
-      const alpha = 0.18 + ratio * 0.45;       // 0.18 → 0.63
-      const width = 2 + ratio * 3;             // 2 → 5
+      const alpha = 0.20 + ratio * 0.45;
+      const width = 2 + ratio * 3;
       const beam = ctx.createLinearGradient(sun.x, sun.y, sx, sy);
       beam.addColorStop(0, `rgba(255, 220, 120, ${alpha})`);
       beam.addColorStop(1, `rgba(255, 220, 120, 0)`);
@@ -1719,15 +1781,15 @@ function drawHazards(sx, sy, angle, sun, dom, earth){
     }
   }
 
-  // 2) 원자산소(AO) 램 방향 스트릭. AO 사용률↑ 시 청록 → 주황으로 보간.
-  const vx = -Math.sin(angle), vy = Math.cos(angle); // 속도 단위벡터
+  // 2) AO 램 방향 스트릭 (청록 → 주황 보간)
+  const vx = -Math.sin(angle), vy = Math.cos(angle);
   const t = Math.min(1, m.ao);
-  const r = Math.round(120 + (255 - 120) * t);
-  const g = Math.round(255 + (130 - 255) * t);
-  const b = Math.round(200 + (  0 - 200) * t);
-  const a = 0.5 + t * 0.4;
-  const aoColor = `rgba(${r}, ${g}, ${b}, ${a})`;
-  const aoLW = 1.2 + t * 0.8;
+  const cr = Math.round(120 + (255 - 120) * t);
+  const cg = Math.round(255 + (130 - 255) * t);
+  const cb = Math.round(200 + (  0 - 200) * t);
+  const ca = 0.55 + t * 0.4;
+  const aoColor = `rgba(${cr}, ${cg}, ${cb}, ${ca})`;
+  const aoLW = 1.4 + t * 0.8;
   for (let i = -3; i <= 3; i++){
     const offX = -vy * i * 3.5;
     const offY =  vx * i * 3.5;
@@ -1740,10 +1802,10 @@ function drawHazards(sx, sy, angle, sun, dom, earth){
   }
 }
 
-// ── Satellite (모든 시점에서 지배 채널을 색/라벨로 표시) ──
-function drawSatellite(sx, sy, dom){
-  // 시뮬레이션 시작 전 — 기본 시안 위성
-  if (!dom){
+// ── Satellite: 최종 원인 단일 표시 (시뮬 시작~끝 동일 라벨/색) ──
+function drawSatellite(sx, sy, cause, liveMetrics){
+  // 시뮬레이션 시작 전
+  if (!cause){
     const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 14);
     glow.addColorStop(0, '#00d4ff');
     glow.addColorStop(0.5, hexA('#00d4ff', 0.5));
@@ -1755,59 +1817,46 @@ function drawSatellite(sx, sy, dom){
     return;
   }
 
-  const info = CHANNEL_INFO[dom.key];
+  const info = CHANNEL_INFO[cause.key];
   const bodyColor = info.color;
+  const labelText = (cause.kind === 'fail' ? '⚠ ' : '▸ ') + info.label;
 
-  // 심각도별 스타일 — fail · high · mid · low
-  let prefix, glowR, lineW, bgA, fontWeight;
-  if (dom.severity === 'fail'){
-    prefix = '⚠ '; glowR = 18; lineW = 1.6; bgA = 0.92; fontWeight = 'bold';
-  } else if (dom.severity === 'high'){
-    prefix = '▲ '; glowR = 16; lineW = 1.3; bgA = 0.85; fontWeight = 'bold';
-  } else if (dom.severity === 'mid'){
-    prefix = '● '; glowR = 14; lineW = 1.0; bgA = 0.78; fontWeight = '600';
-  } else {
-    prefix = '◦ '; glowR = 12; lineW = 0.8; bgA = 0.70; fontWeight = '500';
-  }
-  // 실패가 아니라 "예상 선도 채널"임을 표기
-  const labelText = (dom.severity === 'fail' ? '' : '선도: ') + prefix + info.label;
+  // 글로우 크기는 라이브 사용률에 따라 살짝 펌프 (시각적 호흡)
+  const live = liveMetrics ? Math.min(1, liveMetrics[cause.key] || 0) : 0;
+  const glowR = 14 + live * 6;
 
-  // 외곽 글로우
   const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR);
   glow.addColorStop(0, bodyColor);
-  glow.addColorStop(0.4, hexA(bodyColor, 0.55));
+  glow.addColorStop(0.4, hexA(bodyColor, 0.6));
   glow.addColorStop(1, hexA(bodyColor, 0));
   ctx.fillStyle = glow;
   ctx.beginPath(); ctx.arc(sx, sy, glowR, 0, Math.PI*2); ctx.fill();
 
   // 본체
-  ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI*2);
+  ctx.beginPath(); ctx.arc(sx, sy, 4.5, 0, Math.PI*2);
   ctx.fillStyle = '#ffffff'; ctx.fill();
 
-  // 라벨 pill
-  ctx.font = `${fontWeight} 11px Arial`;
+  // 라벨 pill — 모바일에서 폰트/패딩 키워서 가독성 확보
+  const isNarrow  = W < 600;
+  const fontSize  = isNarrow ? 13 : 12;
+  const padX      = isNarrow ? 9 : 8;
+  const padY      = isNarrow ? 6 : 5;
+  ctx.font = `bold ${fontSize}px Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const tw = ctx.measureText(labelText).width;
-  const lx = sx, ly = sy - 22;
-  ctx.fillStyle = `rgba(8, 13, 30, ${bgA})`;
-  roundRect(lx - tw/2 - 7, ly - 9, tw + 14, 18, 5); ctx.fill();
+  const pillW = tw + padX * 2;
+  const pillH = fontSize + padY * 2;
+  const lx = sx;
+  const ly = sy - (isNarrow ? 28 : 24);
+  ctx.fillStyle = 'rgba(8, 13, 30, 0.92)';
+  roundRect(lx - pillW/2, ly - pillH/2, pillW, pillH, 6); ctx.fill();
   ctx.strokeStyle = bodyColor;
-  ctx.lineWidth = lineW;
-  roundRect(lx - tw/2 - 7, ly - 9, tw + 14, 18, 5); ctx.stroke();
+  ctx.lineWidth = 1.5;
+  roundRect(lx - pillW/2, ly - pillH/2, pillW, pillH, 6); ctx.stroke();
   ctx.fillStyle = bodyColor;
   ctx.fillText(labelText, lx, ly);
   ctx.textBaseline = 'alphabetic';
-
-  // 사용률 미니바 — 라벨 아래
-  const barW = Math.max(60, tw + 14);
-  const barX = lx - barW/2;
-  const barY = ly + 11;
-  const r = Math.min(1, dom.ratio);
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  roundRect(barX, barY, barW, 3, 1.5); ctx.fill();
-  ctx.fillStyle = bodyColor;
-  roundRect(barX, barY, barW * r, 3, 1.5); ctx.fill();
 }
 
 // 작은 헬퍼 — hex+alpha, roundRect 폴리필
@@ -1831,13 +1880,13 @@ function drawOrbit(p){
   const orbitR = earthR * 2.2;
 
   const sun = drawSun();
-  drawEarth(cx, cy, earthR, p * 0.6); // 전체 궤도 페이즈 동안 ~35° 자전
+  drawEarth(cx, cy, earthR, p * 0.6, sun);
 
   // 궤도 링
   ctx.beginPath();
   ctx.arc(cx, cy, orbitR, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(0, 212, 255, 0.28)";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0, 212, 255, 0.32)";
+  ctx.lineWidth = 1.2;
   ctx.stroke();
 
   // 위성 위치 (궤도 페이즈 전체에서 4바퀴)
@@ -1845,16 +1894,17 @@ function drawOrbit(p){
   const sx = cx + orbitR * Math.cos(angle);
   const sy = cy + orbitR * Math.sin(angle);
 
-  // 현재 시점 열화 상태 → 지배 채널 계산
-  let dom = null;
+  // 최종 원인은 시뮬 시작 시 결정 → 라벨/색은 고정. 위해 강도만 라이브.
+  const cause = currentSession ? currentSession.finalCause : null;
+  let liveMetrics = null;
   if (currentSession){
     const t = p * currentSession.S.dur;
     const state = simulateAt(currentSession.S, t);
-    dom = getDominantChannel(state, currentSession.S);
+    liveMetrics = computeChannelMetrics(state, currentSession.S);
   }
 
-  drawHazards(sx, sy, angle, sun, dom, { cx, cy, R: earthR });
-  drawSatellite(sx, sy, dom);
+  drawHazards(sx, sy, angle, sun, liveMetrics, { cx, cy, R: earthR });
+  drawSatellite(sx, sy, cause, liveMetrics);
 }
 
 });
