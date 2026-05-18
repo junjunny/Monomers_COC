@@ -16,13 +16,13 @@ body{
 }
 
 header{
-  height:60px;
+  height:68px;
   background:linear-gradient(180deg, #0a1024 0%, #060a18 100%);
   border-bottom:1px solid #1a2a4a;
   display:flex;
   align-items:center;
-  gap:14px;
-  padding:0 22px;
+  gap:18px;
+  padding:0 26px;
   box-shadow:0 1px 0 rgba(0,212,255,0.07), 0 8px 24px -16px rgba(0,212,255,0.18);
 }
 
@@ -32,32 +32,34 @@ header{
   display:flex;
   align-items:baseline;
   flex-wrap:wrap;
-  gap:9px;
-  line-height:1.15;
+  gap:11px;
+  line-height:1.1;
+  min-width:0; /* flex 자식 overflow 방지 */
   font-family:'Segoe UI','Inter',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
 }
 .brand-mark{
-  font-size:22px;
+  font-size:30px;
   font-weight:800;
-  letter-spacing:0.4px;
+  letter-spacing:0.5px;
   background:linear-gradient(120deg, #00d4ff 0%, #5b8cff 45%, #a855f7 100%);
   -webkit-background-clip:text;
   background-clip:text;
   -webkit-text-fill-color:transparent;
   color:transparent;
-  text-shadow:0 0 22px rgba(91,140,255,0.18);
+  text-shadow:0 0 26px rgba(91,140,255,0.22);
 }
 .brand-sep{
   color:#3a5b8c;
   font-weight:300;
-  font-size:20px;
+  font-size:26px;
   align-self:baseline;
+  opacity:0.7;
 }
 .brand-sub{
-  font-size:13.5px;
-  font-weight:500;
+  font-size:14px;
+  font-weight:600;
   color:#9fc4ee;
-  letter-spacing:1.4px;
+  letter-spacing:1.8px;
   text-transform:uppercase;
 }
 
@@ -80,30 +82,36 @@ header{
 .modal{
   position:fixed;
   inset:0;
-  background:rgba(2,6,23,.78);
+  background:radial-gradient(ellipse at center, rgba(20,40,80,0.78) 0%, rgba(2,6,23,0.92) 75%);
   z-index:1000;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:20px;
-  backdrop-filter:blur(2px);
+  backdrop-filter:blur(3px);
 }
 .modal.hidden{ display:none; }
 
 .modal-box{
   position:relative;
-  background:#0d1530;
-  border:1px solid #1a2a4a;
-  border-radius:12px;
-  max-width:880px;
+  background:
+    radial-gradient(ellipse 600px 200px at 50% 0%, rgba(91,140,255,0.10), transparent 70%),
+    linear-gradient(180deg, #0e1736 0%, #080d22 100%);
+  border:1px solid #1d3260;
+  border-radius:14px;
+  max-width:920px;
   width:100%;
   max-height:90vh;
   overflow-y:auto;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  padding:24px 28px 30px;
+  padding:28px 32px 32px;
   color:#dde6f5;
   line-height:1.55;
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(0,212,255,0.06),
+    0 1px 0 rgba(255,255,255,0.05) inset;
 }
 
 /* 모달 열림 시 body 스크롤 고정 (모바일 의도치 않은 더블 스크롤 방지) */
@@ -130,104 +138,190 @@ body.modal-open{ overflow:hidden !important; }
 .modal-close:hover{ background:#1a2a4a; color:#fff; }
 
 .doc-title{
-  margin:0 0 4px;
-  color:#00d4ff;
-  font-size:18px;
+  margin:0 0 6px;
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:0.3px;
+  background:linear-gradient(120deg, #00d4ff 0%, #5b8cff 45%, #a855f7 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
 }
 .doc-meta{
-  color:#9fb3d1;
-  font-size:12px;
-  margin:0 0 14px;
+  color:#8aa0c4;
+  font-size:11.5px;
+  letter-spacing:0.4px;
+  margin:0 0 16px;
+  text-transform:uppercase;
 }
 
 .doc-nav{
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:18px;
-  padding-bottom:12px;
+  gap:7px;
+  margin-bottom:20px;
+  padding:0 0 14px 0;
   border-bottom:1px solid #1a2a4a;
 }
 .doc-nav a{
   display:inline-block;
-  padding:6px 10px;
-  background:#1a2a4a;
-  border-radius:6px;
-  color:#dde6f5;
+  padding:7px 14px;
+  background:linear-gradient(135deg, #152040, #0f1830);
+  border:1px solid #1d3260;
+  border-radius:18px;
+  color:#cdd9eb;
   text-decoration:none;
   font-size:12px;
+  font-weight:600;
+  letter-spacing:0.2px;
+  transition:all .15s;
 }
-.doc-nav a:hover{ background:#2c4368; color:#00d4ff; }
+.doc-nav a:hover{
+  background:linear-gradient(135deg, #1a2c52, #15224a);
+  border-color:#3a6ed8;
+  color:#7ddfff;
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px -8px rgba(58,110,216,0.5);
+}
 
 .doc-sec{
-  margin-bottom:22px;
-  padding-top:6px;
+  margin-bottom:26px;
+  padding-top:8px;
 }
 .doc-sec h3{
-  color:#00d4ff;
-  font-size:15px;
-  margin:0 0 10px;
-  padding-bottom:5px;
+  color:#ffffff;
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:0.2px;
+  margin:0 0 14px;
+  padding:0 0 10px 0;
   border-bottom:1px solid #1a2a4a;
+  position:relative;
+}
+.doc-sec h3::before{
+  content:'';
+  position:absolute;
+  left:0;
+  bottom:-1px;
+  width:60px;
+  height:2px;
+  background:linear-gradient(90deg, #00d4ff 0%, transparent 100%);
 }
 .doc-sec h4{
   color:#9fc4ee;
-  font-size:13px;
-  margin:14px 0 6px;
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  margin:18px 0 8px;
+  opacity:0.9;
 }
 
 .doc-tbl{
   width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-  margin:4px 0 8px;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12.5px;
+  margin:6px 0 10px;
   table-layout:auto;
+  border:1px solid #1a2a4a;
+  border-radius:6px;
+  overflow:hidden;
 }
 .doc-tbl th, .doc-tbl td{
-  border:1px solid #1a2a4a;
-  padding:4px 8px;
+  border:none;
+  border-bottom:1px solid #142340;
+  padding:7px 10px;
   text-align:left;
   vertical-align:top;
   word-break:break-word;
   overflow-wrap:anywhere;
 }
-.doc-tbl th{ background:#152040; color:#9fc4ee; }
+.doc-tbl tr:last-child td{ border-bottom:none; }
+.doc-tbl th{
+  background:#152040;
+  color:#9fc4ee;
+  font-weight:700;
+  font-size:11px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+}
+.doc-tbl tr:nth-child(even) td{ background:rgba(10,18,38,0.45); }
+.doc-tbl td:first-child{
+  font-family:'JetBrains Mono','Fira Code',Consolas,monospace;
+  color:#82a8ff;
+  font-weight:600;
+}
 
 .doc-ch{
-  margin:10px 0;
-  padding:8px 12px;
-  background:#0a1226;
+  margin:12px 0;
+  padding:11px 14px;
+  background:linear-gradient(135deg, #0c1226 0%, #0a1020 100%);
   border-left:3px solid #f9a825;
-  border-radius:4px;
+  border-radius:6px;
   font-size:12.5px;
+  box-shadow:0 1px 0 rgba(255,255,255,0.02) inset, 0 6px 14px -10px rgba(0,0,0,0.55);
 }
-.doc-ch > b{ display:block; color:#ffb74d; margin-bottom:4px; }
+.doc-ch > b{
+  display:block;
+  margin-bottom:6px;
+  font-size:13px;
+  letter-spacing:0.2px;
+  color:#ffb74d;
+}
+
+/* 채널별 색상 코딩 — 캔버스 위성 라벨 색과 동일 팔레트 */
+.doc-ch.ch-ao         { border-left-color:#ff8a00; }
+.doc-ch.ch-ao > b     { color:#ffb74d; }
+.doc-ch.ch-optical    { border-left-color:#ffd54f; }
+.doc-ch.ch-optical > b{ color:#ffe082; }
+.doc-ch.ch-mech       { border-left-color:#5b8cff; }
+.doc-ch.ch-mech > b   { color:#82a8ff; }
+.doc-ch.ch-stress     { border-left-color:#ef5350; }
+.doc-ch.ch-stress > b { color:#ff8a80; }
+.doc-ch.ch-fatigue    { border-left-color:#e57373; }
+.doc-ch.ch-fatigue > b{ color:#ffab91; }
+.doc-ch.ch-tg         { border-left-color:#ff5252; }
+.doc-ch.ch-tg > b     { color:#ff9e9e; }
+.doc-ch.ch-outgas     { border-left-color:#b06ad8; }
+.doc-ch.ch-outgas > b { color:#ce93d8; }
 .eq{
   display:block;
   white-space:pre-wrap;
   word-break:break-word;
   overflow-wrap:anywhere;
   overflow-x:auto;
-  font-family:Consolas,monospace;
+  font-family:'JetBrains Mono','Fira Code',Consolas,'Courier New',monospace;
   font-size:11.5px;
   color:#dde6f5;
   background:#03050f;
-  padding:8px 10px;
-  border-radius:4px;
-  margin-top:4px;
+  padding:10px 12px;
+  border-radius:5px;
+  margin-top:6px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.45);
 }
 
 .doc-intro{
-  margin:0 0 14px;
-  padding:12px 14px;
-  background:#0a1430;
-  border-left:3px solid #4a8eff;
-  border-radius:4px;
+  margin:0 0 20px;
+  padding:14px 16px 14px 18px;
+  background:linear-gradient(135deg, rgba(10,22,52,0.95), rgba(22,42,86,0.55));
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 24px -16px rgba(0,0,0,0.5);
+}
+.doc-intro::before{
+  content:'';
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:3px;
+  background:linear-gradient(180deg, #00d4ff 0%, #5b8cff 50%, #a855f7 100%);
 }
 .doc-intro p{
-  margin:4px 0;
+  margin:5px 0;
   font-size:12.5px;
-  line-height:1.6;
+  line-height:1.65;
   color:#dde6f5;
 }
 .doc-intro-sub{
@@ -236,16 +330,22 @@ body.modal-open{ overflow:hidden !important; }
 }
 
 .doc-param-box{
-  margin:10px 0;
-  padding:10px 14px;
-  border-radius:6px;
+  margin:12px 0;
+  padding:12px 16px;
+  border-radius:8px;
   border-left:4px solid;
-  background:#0a1226;
+  background:linear-gradient(135deg, rgba(20,36,80,0.5), rgba(10,18,38,0.7));
+  box-shadow:0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 20px -14px rgba(0,0,0,0.55);
+  transition:transform .15s;
 }
+.doc-param-box:hover{ transform:translateY(-1px); }
 .doc-param-box h4{
   margin:0 0 6px;
-  font-size:13.5px;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0.5px;
   color:#fff;
+  text-transform:none;
 }
 .doc-param-box p{
   margin:4px 0 8px;
@@ -253,10 +353,10 @@ body.modal-open{ overflow:hidden !important; }
   color:#bcd0ee;
 }
 .doc-param-box ul{
-  margin:4px 0 0;
+  margin:6px 0 0;
   padding-left:18px;
   font-size:12px;
-  line-height:1.7;
+  line-height:1.75;
 }
 .doc-param-box li{ color:#dde6f5; }
 .doc-param-lit{ border-left-color:#4a8eff; }
@@ -265,53 +365,65 @@ body.modal-open{ overflow:hidden !important; }
 .doc-param-cal h4{ color:#ffd54f; }
 
 .doc-note{
-  font-size:11.5px;
-  color:#9fb3d1;
-  background:#152040;
-  padding:8px 12px;
-  border-radius:4px;
-  margin:10px 0;
+  font-size:12px;
+  color:#b4c8e3;
+  background:linear-gradient(135deg, rgba(22,38,80,0.7), rgba(15,25,50,0.45));
+  border-left:2px solid #3a6ed8;
+  padding:10px 14px;
+  border-radius:5px;
+  margin:12px 0;
+  line-height:1.55;
 }
 
 .doc-foot{
   font-size:10.5px;
-  color:#6c8aba;
+  color:#7e93b5;
   border-top:1px solid #1a2a4a;
-  padding-top:8px;
-  margin-top:18px;
-  line-height:1.5;
+  padding-top:14px;
+  margin-top:24px;
+  line-height:1.75;
+  letter-spacing:0.2px;
+  text-align:center;
 }
 
 /* 모바일에서 모달 내부 패딩 축소 */
 @media(max-width:600px){
   .modal{ padding:6px; }
-  .modal-box{ padding:18px 14px 22px; max-height:96vh; }
-  .doc-title{ font-size:15px; }
-  .doc-sec h3{ font-size:14px; }
-  .doc-tbl{ font-size:11px; }
-  .doc-tbl td, .doc-tbl th{ padding:3px 5px; }
-  .eq{ font-size:10.5px; padding:6px 8px; }
-  .doc-intro{ padding:10px 12px; }
+  .modal-box{ padding:20px 16px 22px; max-height:96vh; border-radius:10px; }
+  .doc-title{ font-size:17px; letter-spacing:0.2px; }
+  .doc-meta{ font-size:10.5px; }
+  .doc-sec h3{ font-size:14.5px; }
+  .doc-sec h4{ font-size:10.5px; letter-spacing:1.3px; }
+  .doc-nav a{ padding:6px 11px; font-size:11.5px; }
+  .doc-tbl{ font-size:11.5px; }
+  .doc-tbl td, .doc-tbl th{ padding:5px 7px; }
+  .doc-tbl th{ font-size:10px; letter-spacing:0.4px; }
+  .eq{ font-size:10.5px; padding:7px 9px; }
+  .doc-intro{ padding:11px 13px 11px 15px; }
   .doc-intro p{ font-size:12px; }
   .doc-intro-sub{ font-size:11.5px !important; }
-  .doc-param-box{ padding:8px 12px; }
+  .doc-param-box{ padding:10px 13px; }
+  .doc-param-box h4{ font-size:12.5px; }
   .doc-param-box ul{ padding-left:16px; font-size:11.5px; }
   .doc-foot{ font-size:10px; }
-  .doc-ch{ padding:7px 10px; }
+  .doc-ch{ padding:9px 12px; }
+  .doc-ch > b{ font-size:12.5px; }
 }
 
 /* 매우 좁은 화면 (≤360px): 모달 가독성 보장 */
 @media(max-width:360px){
-  .modal-box{ padding:14px 10px 18px; }
-  .doc-tbl{ font-size:10px; }
-  .doc-tbl td, .doc-tbl th{ padding:2px 4px; }
-  .eq{ font-size:9.5px; padding:5px 6px; }
+  .modal-box{ padding:16px 12px 18px; }
+  .doc-title{ font-size:15.5px; }
+  .doc-tbl{ font-size:10.5px; }
+  .doc-tbl td, .doc-tbl th{ padding:4px 6px; }
+  .eq{ font-size:9.5px; padding:6px 8px; }
+  .doc-nav a{ padding:5px 9px; font-size:11px; }
 }
 
 .wrap{
   display:grid;
   grid-template-columns:320px 1fr;
-  height:calc(100vh - 60px);
+  height:calc(100vh - 68px);
 }
 
 .side{
@@ -571,24 +683,24 @@ canvas{
   /* 모바일: 콘텐츠가 길어지면 body 스크롤 허용 (캔버스 잘림 방지) */
   body{ overflow:auto; }
 
-  /* 헤더 — 긴 제목이 60px를 넘쳐 잘리지 않도록 */
+  /* 헤더 — 두 줄로 늘어나도 자연스럽게, 워드마크는 큼직하게 유지 */
   header{
     height:auto;
-    min-height:54px;
-    padding:8px 12px;
+    min-height:60px;
+    padding:10px 14px;
     gap:10px;
   }
-  .brand-title{ gap:6px; }
-  .brand-mark{ font-size:18px; letter-spacing:0.2px; }
-  .brand-sep { font-size:16px; }
-  .brand-sub { font-size:11px; letter-spacing:1px; }
-  .doc-btn{ padding:7px 10px; font-size:12px; }
+  .brand-title{ gap:5px 9px; line-height:1.05; }
+  .brand-mark{ font-size:24px; letter-spacing:0.3px; }
+  .brand-sep { font-size:20px; }
+  .brand-sub { font-size:11.5px; letter-spacing:1.3px; }
+  .doc-btn{ padding:8px 12px; font-size:12px; }
 
   .wrap{
     grid-template-columns:1fr;
     grid-template-rows:auto 1fr;
     height:auto;
-    min-height:calc(100vh - 60px);
+    min-height:calc(100vh - 68px);
   }
 
   .side{
@@ -634,17 +746,23 @@ canvas{
 
 }
 
-/* 매우 좁은 화면(≤480px) — HUD 더 축소, 서브타이틀은 줄바꿈 */
+/* 매우 좁은 화면(≤480px) — 워드마크는 살리고 서브타이틀은 다음 줄로 */
 @media(max-width:480px){
-  .brand-title{ gap:4px 8px; }
-  .brand-mark{ font-size:16px; }
+  .brand-title{ gap:2px 8px; }
+  .brand-mark{ font-size:22px; }
   .brand-sep { display:none; }
-  .brand-sub { font-size:10px; letter-spacing:0.8px; flex-basis:100%; opacity:0.85; }
-  .doc-btn{ padding:6px 9px; font-size:11px; }
+  .brand-sub { font-size:10.5px; letter-spacing:1.1px; flex-basis:100%; opacity:0.85; }
+  .doc-btn{ padding:6px 10px; font-size:11px; }
   .hud{ width:140px; padding:6px 8px; }
   .hud h2{ font-size:10.5px; }
   .hud .row{ font-size:10px; padding:2px 0; }
   .phase{ max-width:46%; padding:6px 8px; font-size:10.5px; }
+}
+
+/* 극히 좁은 화면 (≤360px) — 살짝만 더 줄임 */
+@media(max-width:360px){
+  .brand-mark{ font-size:20px; }
+  .brand-sub { font-size:10px; letter-spacing:0.9px; }
 }
 
 /* 매우 작은 화면(랜드스케이프 폰 등) — HUD 숨겨 시뮬에 집중 */
@@ -777,7 +895,7 @@ canvas{
     <section id="doc-eq" class="doc-sec">
       <h3>④ 관계식 (8채널)</h3>
 
-      <div class="doc-ch"><b>Ch1 — AO 침식 (COC 외층 → POE 코어 가속)</b>
+      <div class="doc-ch ch-ao"><b>Ch1 — AO 침식 (COC 외층 → POE 코어 가속)</b>
         <div class="eq">F_AO(t) = AO_RATE · t
 Δh_gross(t) = E_y · F_AO · 10⁴ · χ                  [μm]
 if Δh_gross ≤ h_COC₀ :  t_COC = h_COC₀ − Δh_gross,  t_POE = h_POE₀
@@ -786,12 +904,12 @@ else                 :  t_COC = 0,
 실패: t_COC ≤ 0</div>
       </div>
 
-      <div class="doc-ch"><b>Ch2 — AO 거칠기 → 광산란</b>
+      <div class="doc-ch ch-ao"><b>Ch2 — AO 거칠기 → 광산란</b>
         <div class="eq">Δh_tot  = (h_POE₀ − t_POE) + (h_COC₀ − t_COC)
 L_rough = k_rough · Δh_tot</div>
       </div>
 
-      <div class="doc-ch"><b>Ch3 — 광학 열화 (다중 결합)</b>
+      <div class="doc-ch ch-optical"><b>Ch3 — 광학 열화 (다중 결합)</b>
         <div class="eq">T(t) = T₀
        · exp(−α · TH)                       [Beer-Lambert]
        · exp(−k_rad · Φ̇_rad · t · 100)        [kGy→krad, 방사선 황변]
@@ -801,18 +919,18 @@ L_rough = k_rough · Δh_tot</div>
 실패: T(t) &lt; T₀ × 0.60</div>
       </div>
 
-      <div class="doc-ch"><b>Ch4 — 영률 (혼합 법칙 + 방사선 가교)</b>
+      <div class="doc-ch ch-mech"><b>Ch4 — 영률 (혼합 법칙 + 방사선 가교)</b>
         <div class="eq">E_base = E_COC · f_COC + E_POE · f_POE
 E(t)   = E_base · (1 + k_xl · Φ̇_rad · t · 100)</div>
       </div>
 
-      <div class="doc-ch"><b>Ch5 — 정적 열응력 박리</b>
+      <div class="doc-ch ch-stress"><b>Ch5 — 정적 열응력 박리</b>
         <div class="eq">Δα     = | α_POE − α_COC | = 120 ppm/℃
 σ(t)   = η · E(t) · Δα · 10⁻⁶ · ΔT          [MPa]
 실패: σ(t) &gt; σ_adh</div>
       </div>
 
-      <div class="doc-ch"><b>Ch6 — 열사이클 피로 (Coffin-Manson + Miner)</b>
+      <div class="doc-ch ch-fatigue"><b>Ch6 — 열사이클 피로 (Coffin-Manson + Miner)</b>
         <div class="eq">N(t) = N_cyc · t
 N_ref_eff = N_ref · max(0.2, 1 − (NB − 30) · 0.02)
             ↑ NB↑ → 폴리머 취성↑ → 피로 한계 사이클 감소
@@ -821,7 +939,7 @@ D(t) = (N / N_ref_eff) · (σ/σ_adh)^n
 실패: D(t) ≥ 1.0</div>
       </div>
 
-      <div class="doc-ch"><b>Ch7 — Tg 판정 (시간 무관)</b>
+      <div class="doc-ch ch-tg"><b>Ch7 — Tg 판정 (시간 무관)</b>
         <div class="eq">Tg = Tg₀ + m_g · NB
 고온 연화: (T_MAX − Tg) > 0    → Tg가 운용 최고온 아래 (운용 중 고무화)
 ※ 저온 취성 검사 제거 — NB↑ 시 취성 효과는 채널 6의 N_ref 감소로 반영
@@ -830,7 +948,7 @@ D(t) = (N / N_ref_eff) · (σ/σ_adh)^n
   우주 임무 특성상 보수적 판정을 적용함.</div>
       </div>
 
-      <div class="doc-ch"><b>Ch8 — Outgassing (조성 의존 포화)</b>
+      <div class="doc-ch ch-outgas"><b>Ch8 — Outgassing (조성 의존 포화)</b>
         <div class="eq">TML_sat  = TML_POE · f_POE + TML_COC · f_COC
 CVCM_sat = CVCM_POE · f_POE + CVCM_COC · f_COC
 TML(t)   = TML_sat  · (1 − exp(−t/τ))
@@ -1605,12 +1723,13 @@ function drawRocket(q){
   ctx.restore();
 }
 
-// ── Sun (HUD에 가리지 않도록 우하단 고정. 모바일에서도 OK) ─
+// ── Sun (우측 중앙. 상단 HUD와 하단 msg 모두 피해 가운데로) ─
 function drawSun(){
   const r = Math.max(15, Math.min(24, Math.min(W, H) * 0.035));
   const margin = r + 18;
   const x = W - margin;
-  const y = H - margin;
+  // 상단 HUD 영역 ≈ y200 이하, 하단 msg 영역 ≈ H-70 이상은 피하고 가운데 정렬
+  const y = Math.min(Math.max(H * 0.5, 180), H - 70);
   // 외곽 halo
   const halo = ctx.createRadialGradient(x, y, r, x, y, r * 3.2);
   halo.addColorStop(0, 'rgba(255, 220, 100, 0.50)');
