@@ -12,6 +12,7 @@ body{
   color:#dde6f5;
   font-family:Arial,sans-serif;
   overflow:hidden;
+  -webkit-text-size-adjust:100%;
 }
 
 header{
@@ -20,6 +21,7 @@ header{
   border-bottom:1px solid #1a2a4a;
   display:flex;
   align-items:center;
+  gap:10px;
   padding:0 20px;
 }
 
@@ -27,6 +29,7 @@ header h1{
   margin:0;
   font-size:18px;
   flex:1;
+  line-height:1.2;
 }
 
 .doc-btn{
@@ -67,10 +70,15 @@ header h1{
   width:100%;
   max-height:90vh;
   overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
   padding:24px 28px 30px;
   color:#dde6f5;
   line-height:1.55;
 }
+
+/* 모달 열림 시 body 스크롤 고정 (모바일 의도치 않은 더블 스크롤 방지) */
+body.modal-open{ overflow:hidden !important; }
 
 .modal-close{
   position:absolute;
@@ -144,12 +152,15 @@ header h1{
   border-collapse:collapse;
   font-size:12px;
   margin:4px 0 8px;
+  table-layout:auto;
 }
 .doc-tbl th, .doc-tbl td{
   border:1px solid #1a2a4a;
   padding:4px 8px;
   text-align:left;
   vertical-align:top;
+  word-break:break-word;
+  overflow-wrap:anywhere;
 }
 .doc-tbl th{ background:#152040; color:#9fc4ee; }
 
@@ -165,6 +176,9 @@ header h1{
 .eq{
   display:block;
   white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  overflow-x:auto;
   font-family:Consolas,monospace;
   font-size:11.5px;
   color:#dde6f5;
@@ -174,28 +188,52 @@ header h1{
   margin-top:4px;
 }
 
-.doc-preset{
-  margin:12px 0;
+.doc-intro{
+  margin:0 0 14px;
+  padding:12px 14px;
+  background:#0a1430;
+  border-left:3px solid #4a8eff;
+  border-radius:4px;
+}
+.doc-intro p{
+  margin:4px 0;
+  font-size:12.5px;
+  line-height:1.6;
+  color:#dde6f5;
+}
+.doc-intro-sub{
+  color:#9fb3d1 !important;
+  font-size:12px !important;
+}
+
+.doc-param-box{
+  margin:10px 0;
   padding:10px 14px;
   border-radius:6px;
   border-left:4px solid;
   background:#0a1226;
 }
-.doc-preset h4{
+.doc-param-box h4{
   margin:0 0 6px;
-  font-size:14px;
+  font-size:13.5px;
   color:#fff;
 }
-.doc-preset p{
-  margin:4px 0;
-  font-size:12.5px;
+.doc-param-box p{
+  margin:4px 0 8px;
+  font-size:12px;
+  color:#bcd0ee;
 }
-.doc-p-danger{  border-left-color:#ff4444; }
-.doc-p-danger h4{  color:#ff8888; }
-.doc-p-coc{     border-left-color:#ffb300; }
-.doc-p-coc h4{     color:#ffd54f; }
-.doc-p-optimal{ border-left-color:#00e676; }
-.doc-p-optimal h4{ color:#69f0ae; }
+.doc-param-box ul{
+  margin:4px 0 0;
+  padding-left:18px;
+  font-size:12px;
+  line-height:1.7;
+}
+.doc-param-box li{ color:#dde6f5; }
+.doc-param-lit{ border-left-color:#4a8eff; }
+.doc-param-lit h4{ color:#7fb3ff; }
+.doc-param-cal{ border-left-color:#ffb300; }
+.doc-param-cal h4{ color:#ffd54f; }
 
 .doc-note{
   font-size:11.5px;
@@ -223,7 +261,22 @@ header h1{
   .doc-sec h3{ font-size:14px; }
   .doc-tbl{ font-size:11px; }
   .doc-tbl td, .doc-tbl th{ padding:3px 5px; }
-  .eq{ font-size:10.5px; }
+  .eq{ font-size:10.5px; padding:6px 8px; }
+  .doc-intro{ padding:10px 12px; }
+  .doc-intro p{ font-size:12px; }
+  .doc-intro-sub{ font-size:11.5px !important; }
+  .doc-param-box{ padding:8px 12px; }
+  .doc-param-box ul{ padding-left:16px; font-size:11.5px; }
+  .doc-foot{ font-size:10px; }
+  .doc-ch{ padding:7px 10px; }
+}
+
+/* 매우 좁은 화면 (≤360px): 모달 가독성 보장 */
+@media(max-width:360px){
+  .modal-box{ padding:14px 10px 18px; }
+  .doc-tbl{ font-size:10px; }
+  .doc-tbl td, .doc-tbl th{ padding:2px 4px; }
+  .eq{ font-size:9.5px; padding:5px 6px; }
 }
 
 .wrap{
@@ -276,41 +329,6 @@ button:disabled{
   background:#334155;
   cursor:not-allowed;
 }
-
-.preset-row{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:6px;
-  margin-top:6px;
-}
-
-.preset-btn{
-  padding:8px 4px;
-  margin:0;
-  border:1px solid #1a2a4a;
-  border-radius:6px;
-  background:#0d1530;
-  color:#dde6f5;
-  font-size:11px;
-  font-weight:700;
-  cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:2px;
-  transition:transform .08s, background .12s;
-}
-
-.preset-btn span{
-  font-size:9px;
-  font-weight:normal;
-  color:#9fb3d1;
-}
-
-.preset-btn:hover{ transform:translateY(-1px); }
-.preset-danger:hover{  background:#3a1010; border-color:#ff4444; }
-.preset-coc:hover{     background:#3a2410; border-color:#ffb300; }
-.preset-optimal:hover{ background:#103a1c; border-color:#00e676; }
 
 .card{
   background:#0d1530;
@@ -521,6 +539,18 @@ canvas{
 /* ── Mobile / narrow viewport ──────────────────────────── */
 @media(max-width:900px){
 
+  /* 모바일: 콘텐츠가 길어지면 body 스크롤 허용 (캔버스 잘림 방지) */
+  body{ overflow:auto; }
+
+  /* 헤더 — 긴 제목이 60px를 넘쳐 잘리지 않도록 */
+  header{
+    height:auto;
+    min-height:54px;
+    padding:8px 12px;
+  }
+  header h1{ font-size:14px; }
+  .doc-btn{ padding:7px 10px; font-size:12px; }
+
   .wrap{
     grid-template-columns:1fr;
     grid-template-rows:auto 1fr;
@@ -534,6 +564,7 @@ canvas{
     overflow-y:auto;
     border-right:0;
     border-bottom:1px solid #1a2a4a;
+    -webkit-overflow-scrolling:touch;
   }
 
   .main{
@@ -542,7 +573,7 @@ canvas{
 
   /* HUD overlay를 작은 화면에서도 보이도록 축소 */
   .hud{
-    width:180px;
+    width:160px;
     top:8px;
     right:8px;
     padding:8px 10px;
@@ -563,8 +594,21 @@ canvas{
     padding:7px 14px;
     font-size:11px;
     bottom:14px;
+    max-width:calc(100% - 24px);
+    text-align:center;
+    line-height:1.35;
   }
 
+}
+
+/* 매우 좁은 화면(≤480px) — HUD 더 축소, 헤더 한 줄 유지 */
+@media(max-width:480px){
+  header h1{ font-size:12.5px; }
+  .doc-btn{ padding:6px 9px; font-size:11px; }
+  .hud{ width:140px; padding:6px 8px; }
+  .hud h2{ font-size:10.5px; }
+  .hud .row{ font-size:10px; padding:2px 0; }
+  .phase{ max-width:46%; padding:6px 8px; font-size:10.5px; }
 }
 
 /* 매우 작은 화면(랜드스케이프 폰 등) — HUD 숨겨 시뮬에 집중 */
@@ -590,11 +634,16 @@ canvas{
     <h2 class="doc-title">모델 설명 — COC/POE LEO 봉지재 시뮬레이터</h2>
     <p class="doc-meta">Team Monomers · 공학기초설계 · LEO (ISS 400km, 51.6°) · Tsim 15년</p>
 
+    <div class="doc-intro">
+      <p><b>설계 목표</b> &nbsp;|&nbsp; COC·POE 조성비, 총 두께, 노보넨 함량 — 세 가지 설계 변수가 LEO 봉지재 수명에 미치는 영향을 정량적으로 시각화한다. ISS와 동일한 400km 저궤도 환경 (방사선 0.5 kGy/y, UV 5256 ESH/y, 원자산소 3.28 × 10²¹ atoms/cm²/y, ΔT 300℃ 열사이클 5840회/y)을 기준으로, NASA NTRS 레퍼런스와 고분자 역학식을 결합한 <b>8개 독립 열화 채널</b>을 실시간 동시 연산한다.</p>
+      <p class="doc-intro-sub"><b>학부 설계 검토 도구로서의 한계</b> &nbsp;|&nbsp; COC–POE 계면에 대한 실험 데이터가 문헌에 부재하여 일부 상수는 추정값을 사용했으며, 실제 우주 환경은 입자 에너지 스펙트럼·궤도 경사각·태양 활동 주기에 따라 변동하지만 본 모델은 ISS 400km 대표값을 고정 상수로 사용한다. 정량적 수명 수치보다는 <b>수명 예측의 정성적 경향성과 설계 변수 간 트레이드오프</b>를 보여주는 데 목적이 있다.</p>
+    </div>
+
     <nav class="doc-nav">
       <a href="#doc-env">① 우주환경 상수</a>
       <a href="#doc-mat">② 소재 특성</a>
-      <a href="#doc-eq">③ 관계식 (7채널)</a>
-      <a href="#doc-preset">④ 프리셋 3개 해설</a>
+      <a href="#doc-param">③ 파라미터 분류</a>
+      <a href="#doc-eq">④ 관계식 (8채널)</a>
     </nav>
 
     <section id="doc-env" class="doc-sec">
@@ -602,7 +651,7 @@ canvas{
       <table class="doc-tbl">
         <tr><th>상수</th><th>값</th><th>의미 · 출처</th></tr>
         <tr><td>RAD_RATE</td><td>0.5 kGy/y</td><td>이온화 방사선 dose rate · MDPI Electronics 12(19) 4058</td></tr>
-        <tr><td>UV_RATE</td><td>5256 ESH/y</td><td>UV 등가태양시간 (일조비 60% × 8760h) · NREL Solar Spectra</td></tr>
+        <tr><td>UV_RATE</td><td>5256 ESH/y</td><td>UV 등가태양시간 (NREL 태양상수 기준 × ISS 일조율 60% × 8760h 자체 계산)</td></tr>
         <tr><td>AO_RATE</td><td>3.28 × 10²¹ atoms/cm²/y</td><td>원자산소 fluence · NASA NTRS 20070002707</td></tr>
         <tr><td>T_MAX / T_MIN</td><td>+150 / −150 ℃</td><td>태양 직사 ↔ 지구 그늘 · PCBSync Satellite PCB</td></tr>
         <tr><td>ΔT</td><td>300 ℃</td><td>한 사이클 온도 변화폭</td></tr>
@@ -632,7 +681,7 @@ canvas{
 
       <h4>기계</h4>
       <table class="doc-tbl">
-        <tr><td>E_COC / E_POE</td><td>3000 / 10 MPa</td><td>각 단독 영률 · TOPAS, ScienceDirect</td></tr>
+        <tr><td>E_COC / E_POE</td><td>3000 / 10 MPa</td><td>각 단독 영률 (E_COC: TOPAS COC 실측 범위 1260~3200 MPa, 보수적 상한값 적용 · E_POE: ScienceDirect)</td></tr>
         <tr><td>k_xl</td><td>10⁻⁴ /krad</td><td>방사선 가교에 의한 모듈러스 증가</td></tr>
         <tr><td>α_COC / α_POE</td><td>60 / 180 ppm/℃</td><td>열팽창계수 · TOPAS · Wiley pip.3323</td></tr>
         <tr><td>σ_adh</td><td>5 MPa</td><td>박리 임계 (peel 30 N/cm ÷ 0.6mm)</td></tr>
@@ -658,8 +707,37 @@ canvas{
       </table>
     </section>
 
+    <section id="doc-param" class="doc-sec">
+      <h3>③ 파라미터 분류 — 문헌 기반값 vs Calibration Parameter</h3>
+      <p class="doc-note">모델에 투입된 상수는 출처 신뢰도에 따라 두 종류로 분류된다. 발표 시 신뢰 구간 해석의 근거가 된다.</p>
+
+      <div class="doc-param-box doc-param-lit">
+        <h4>📚 문헌 기반값 (Literature-Derived)</h4>
+        <p>측정값 또는 공인 데이터시트에서 직접 인용한 상수. 모델의 정량적 기반.</p>
+        <ul>
+          <li><b>E_y</b> — AO 침식 수율 (NASA NTRS 20090034484)</li>
+          <li><b>AO_RATE</b> — LEO 원자산소 fluence (NASA NTRS 20070002707)</li>
+          <li><b>RAD_RATE</b> — LEO 이온화 dose rate (MDPI Electronics 12(19) 4058)</li>
+          <li><b>CTE_COC / CTE_POE</b> — 열팽창계수 (TOPAS · Wiley pip.3323)</li>
+          <li><b>Tg 회귀식 계수 (Tg₀, m_g)</b> — NB-Tg 선형 관계 (ScienceDirect S0376738805006071, TOPAS datasheet)</li>
+          <li><b>TML / CVCM 한계값</b> — 1.0% / 0.1% (ASTM E595 · NASA GSFC)</li>
+        </ul>
+      </div>
+
+      <div class="doc-param-box doc-param-cal">
+        <h4>⚙ 가정값 — Calibration Parameter</h4>
+        <p>COC–POE 계면 실험 데이터 부재로 문헌 범위·물리적 합리성·보수적 판단에 근거해 추정한 상수.</p>
+        <ul>
+          <li><b>k_rad, k_UV, k_rough, k_cont</b> — 광학 열화 상수: 문헌 범위 내 가정값</li>
+          <li><b>χ = 0.2, μ_core = 1.8, η = 0.05</b> — 차폐·가속침식·구속완화 인자: 물리적 합리성 기반 추정</li>
+          <li><b>τ = 0.5 y, γ_AO = 0.3</b> — Outgassing 시정수·AO 제거율: 보수적 추정값</li>
+          <li><b>N_ref, n</b> — Coffin-Manson 기준 사이클·응력비 지수: 폴리머 피로 문헌 부재로 인한 보수적 추정</li>
+        </ul>
+      </div>
+    </section>
+
     <section id="doc-eq" class="doc-sec">
-      <h3>③ 관계식 (7채널)</h3>
+      <h3>④ 관계식 (8채널)</h3>
 
       <div class="doc-ch"><b>Ch1 — AO 침식 (COC 외층 → POE 코어 가속)</b>
         <div class="eq">F_AO(t) = AO_RATE · t
@@ -708,7 +786,10 @@ D(t) = (N / N_ref_eff) · (σ/σ_adh)^n
       <div class="doc-ch"><b>Ch7 — Tg 판정 (시간 무관)</b>
         <div class="eq">Tg = Tg₀ + m_g · NB
 고온 연화: (T_MAX − Tg) > 0    → Tg가 운용 최고온 아래 (운용 중 고무화)
-※ 저온 취성 검사 제거 — NB↑ 시 취성 효과는 채널 6의 N_ref 감소로 반영</div>
+※ 저온 취성 검사 제거 — NB↑ 시 취성 효과는 채널 6의 N_ref 감소로 반영
+※ Tg &lt; T_MAX 시 즉시 실패 처리는 보수적 설계 기준임.
+  실제로는 Tg 초과 시 탄성률 급감 및 크리프 위험이 증가하나,
+  우주 임무 특성상 보수적 판정을 적용함.</div>
       </div>
 
       <div class="doc-ch"><b>Ch8 — Outgassing (조성 의존 포화)</b>
@@ -720,31 +801,6 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
       </div>
 
       <p class="doc-note">수명 = 어느 채널이든 임계 도달 최초 시각의 직전 step (t − dt). Ch7 (Tg) 만 시간 무관, 즉시 판정.</p>
-    </section>
-
-    <section id="doc-preset" class="doc-sec">
-      <h3>④ 발표용 프리셋 3가지</h3>
-
-      <div class="doc-preset doc-p-danger">
-        <h4>⚠ Danger — NB 20 / TH 400 / rPOE 50%</h4>
-        <p><b>결과:</b> 0년 (Tg 고온 연화)</p>
-        <p><b>원인:</b> 노보넨 함량이 낮아 Tg = −15 + 4.5×20 = <b>75℃</b>. 운용 최고온 150℃에서 폴리머가 Tg를 초과해 고무화 상태 → 즉시 임무 불가.</p>
-        <p><b>설계 메시지:</b> NB가 너무 적으면 우주 환경 온도 범위를 폴리머의 기계적 안전 영역으로 덮을 수 없음.</p>
-      </div>
-
-      <div class="doc-preset doc-p-coc">
-        <h4>⚙ COC-Heavy — NB 40 / TH 400 / rPOE 20%</h4>
-        <p><b>결과:</b> 약 3.5년 (열사이클 피로 박리)</p>
-        <p><b>원인:</b> 외층 COC 320μm로 AO는 잘 막음. 그러나 COC 비율 80%로 E_base ≈ 2400 MPa로 큼 → σ_eff ≈ 4.3 MPa (σ_adh = 5에 근접). NB=40에서 N_ref_eff = 16000 (NB↑로 취성↑ → 피로 한계 감소) → Miner 누적이 ~3.5년 만에 D=1 도달.</p>
-        <p><b>설계 메시지:</b> AO 보호만 보고 COC를 늘리면 (1) 열팽창 응력이 커지고 (2) NB도 같이 올려 잡으려 하면 폴리머가 취성화되어 피로 한계가 빠르게 떨어짐 → 박리 가속.</p>
-      </div>
-
-      <div class="doc-preset doc-p-optimal">
-        <h4>★ Optimal — NB 40 / TH 650 / rPOE 58%</h4>
-        <p><b>결과:</b> 약 11.6년 (광학 열화)</p>
-        <p><b>원인:</b> 총 두께 650μm로 AO 방어 (h_COC₀ ≈ 273μm), POE 비율 58%로 E_base ≈ 1264 MPa 낮춰 σ_eff ≈ 2.3 MPa &lt; σ_adh = 5 → 정적·피로 모두 통과. AO 침식 ~12년, 광학이 비슷한 시기 한계 도달.</p>
-        <p><b>설계 메시지:</b> 두께와 POE/COC 비율을 균형 조정해 7개 채널이 모두 안전 영역에서 동시에 한계에 가까워지는 점이 최적. LEO 실용성 기준 (10년+) 충족.</p>
-      </div>
     </section>
 
     <p class="doc-foot">출처: MDPI Electronics 12(19) 4058 · NREL Solar Spectra · NASA NTRS 20070002707, 20090034484 · NASA GSFC ASTM E595 · TOPAS Advanced Polymers · ScienceDirect S0376738805006071 · Wiley pip.3323, pip.3551, Polym. Eng. Sci. 1969 · GitHub: junjunny/Monomers_COC</p>
@@ -782,13 +838,6 @@ CVCM_eff = CVCM_sat · (1 − exp(−t/τ)) · (1 − γ_AO)
     <div class="ratio-viz">
       <div class="layer poe-layer" id="poeLayer">POE 50%</div>
       <div class="layer coc-layer" id="cocLayer">COC 50%</div>
-    </div>
-
-    <label style="margin-top:18px">발표용 프리셋</label>
-    <div class="preset-row">
-      <button class="preset-btn preset-danger"  data-nb="20" data-th="400" data-poe="50">⚠ Danger<span>0년 Tg</span></button>
-      <button class="preset-btn preset-coc"     data-nb="40" data-th="400" data-poe="20">⚙ COC-Heavy<span>~4년 피로</span></button>
-      <button class="preset-btn preset-optimal" data-nb="40" data-th="650" data-poe="58">★ Optimal<span>~12년 광학</span></button>
     </div>
 
     <button id="runBtn">🚀 시뮬레이션 시작</button>
@@ -1386,22 +1435,18 @@ function startSimulation(){
 
 runBtn.addEventListener("click", startSimulation);
 
-document.querySelectorAll(".preset-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    nb.value  = btn.dataset.nb;
-    th.value  = btn.dataset.th;
-    poe.value = btn.dataset.poe;
-    syncSliderLabels();
-    startSimulation();
-  });
-});
-
 // ── 설명 모달 ────────────────────────────────────────────
 const docBtn   = document.getElementById("docBtn");
 const docModal = document.getElementById("docModal");
 const docClose = document.getElementById("docClose");
-function openDoc(){ docModal.classList.remove("hidden"); }
-function closeDoc(){ docModal.classList.add("hidden"); }
+function openDoc(){
+  docModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+function closeDoc(){
+  docModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
 docBtn.addEventListener("click", openDoc);
 docClose.addEventListener("click", closeDoc);
 docModal.addEventListener("click", (e) => {
